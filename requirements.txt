@@ -1,0 +1,38 @@
+##############################
+# Core (instalar primero)
+##############################
+fastapi>=0.110,<0.112
+uvicorn>=0.27,<0.28
+requests>=2.31,<2.33
+httpx>=0.27,<0.28
+pydantic>=2.8.0   # Allow newer with cp313 wheels
+pydantic-settings>=2.3.0
+python-dotenv==1.0.1
+
+# Dependencias científicas mínimas
+# Usa ruedas binarias (wheels). Si pip intenta compilar, primero:
+#   python -m pip install --upgrade pip setuptools wheel
+#   pip install --only-binary=:all: numpy pandas
+numpy>=2.3,<2.4
+pandas>=2.2,<2.4
+
+##############################
+# Opcionales (añadir más tarde si se necesitan features avanzados)
+##############################
+# scipy==1.12.0          # Fenología avanzada (savgol). Fallback sin SciPy ya implementado.
+# rasterio==1.3.9        # Lectura GeoTIFF
+# xarray==2024.1.0       # Series multidimensionales
+# netCDF4==1.6.5         # NetCDF soporte
+# folium==0.16.0         # Mapas rápidos
+# geopandas==0.14.3      # Geometrías avanzadas
+# shapely==2.0.3         # Operaciones geométricas
+# boto3==1.34.34         # Acceso S3 (HLS en cloud)
+# aiohttp==3.9.3         # Cliente async
+
+##############################
+# Notas de instalación Windows
+##############################
+# Si añades los opcionales que compilan (rasterio, shapely, etc.) y falla:
+# 1. Instala Visual Studio Build Tools (Desktop C++)
+# 2. Instala ruedas precompiladas donde sea posible
+# 3. O usa un entorno Conda: conda create -n bloom python=3.11 fastapi uvicorn pandas numpy scipy
