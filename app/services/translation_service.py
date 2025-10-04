@@ -1,6 +1,10 @@
 """
 Internationalization (i18n) service for FLORASAT
-Supports Spanish and English for NASA Space Apps international presentation
+Supports Spanish and English for NASA Space Apps international prese                # Main interface  
+                "app_title": "FLORASAT Dashboard",
+                "app_subtitle": "Intelligent Crop Monitoring | NASA Space Apps 2025 | Valencia → Global",
+                "main_description": "What does each thing mean?",
+                "interactive_map_label": "Interactive Map",ion
 """
 from typing import Dict, Any
 from app.core.config import settings
@@ -15,6 +19,7 @@ class TranslationService:
                 "app_title": "FLORASAT Dashboard",
                 "app_subtitle": "Monitoreo Inteligente de Cultivos | NASA Space Apps 2025 | Valencia → Global",
                 "main_description": "¿Qué significa cada cosa?",
+                "interactive_map_label": "Mapa Interactivo",
                 
                 # NDVI and data explanations
                 "ndvi_explanation": "Índice de Vegetación (0-1). Valores altos = vegetación saludable, bajos = suelo desnudo",
