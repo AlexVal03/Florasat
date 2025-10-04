@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 FLORASAT - Mapa Interactivo de Fenología</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Timeline Container */
+        .timeline-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .timeline-header {
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .timeline-date {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Timeline Slider */
+        .timeline-slider {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Month Labels */
+        .month-labels {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        /* Filters Panel */
+        .filters-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            min-width: 250px;
+        }
+
+        .filters-title {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-label {
+            color: white;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .crop-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .crop-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .crop-button.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .crop-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Yield Filter */
+        .yield-filter {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .yield-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 0.8em;
+        }
+
+        .yield-option input[type="checkbox"] {
+            accent-color: #4CAF50;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 150px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            color: white;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8em;
+        }
+
+        .legend-icon {
+            font-size: 1.2em;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            color: white;
+            max-width: 300px;
+            display: none;
+        }
+
+        .info-panel.show {
+            display: block;
+        }
+
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        .info-content {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+                font-size: 0.9em;
+            }
+
+            .filters-panel {
+                position: fixed;
+                top: 70px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .timeline-container {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+            }
+
+            .legend {
+                left: 10px;
+                bottom: 120px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 2000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4CAF50;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span>🌍</span>
+                <span>FLORASAT</span>
+                <span style="font-size: 0.7em; opacity: 0.8;">Mapa Fenológico Interactivo</span>
+            </div>
+            <div class="controls">
+                <select id="languageSelect" class="btn">
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="en">🇺🇸 English</option>
+                </select>
+                <a href="/" class="btn">📊 Dashboard</a>
+                <button id="resetView" class="btn">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div>Cargando datos fenológicos...</div>
+            </div>
+        </div>
+
+        <!-- Timeline Container -->
+        <div class="timeline-container">
+            <div class="timeline-header">
+                <div>📅 <span id="timeline-title">Navegación Temporal</span></div>
+                <div class="timeline-date" id="current-date">Enero 2025</div>
+            </div>
+            <div class="timeline-slider">
+                <input type="range" min="1" max="365" value="1" class="slider" id="dateSlider">
+                <div class="month-labels">
+                    <span>Ene</span>
+                    <span>Feb</span>
+                    <span>Mar</span>
+                    <span>Abr</span>
+                    <span>May</span>
+                    <span>Jun</span>
+                    <span>Jul</span>
+                    <span>Ago</span>
+                    <span>Sep</span>
+                    <span>Oct</span>
+                    <span>Nov</span>
+                    <span>Dic</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Panel -->
+        <div class="filters-panel">
+            <div class="filters-title">🎛️ <span id="filters-title">Filtros</span></div>
+            
+            <div class="filter-group">
+                <label class="filter-label" id="crop-filter-label">🌾 Tipos de Cultivo:</label>
+                <div class="crop-filter">
+                    <button class="crop-button active" data-crop="arroz">
+                        🌾 <span id="rice-label">Arroz</span>
+                    </button>
+                    <button class="crop-button active" data-crop="maiz">
+                        🌽 <span id="corn-label">Maíz</span>
+                    </button>
+                    <button class="crop-button active" data-crop="trigo">
+                        🌾 <span id="wheat-label">Trigo</span>
+                    </button>
+                    <button class="crop-button active" data-crop="tomate">
+                        🍅 <span id="tomato-label">Tomate</span>
+                    </button>
+                    <button class="crop-button active" data-crop="naranja">
+                        🍊 <span id="orange-label">Naranja</span>
+                    </button>
+                    <button class="crop-button active" data-crop="oliva">
+                        🫒 <span id="olive-label">Oliva</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" id="yield-filter-label">📈 Nivel de Rendimiento:</label>
+                <div class="yield-filter">
+                    <label class="yield-option">
+                        <input type="checkbox" id="yield-high" checked>
+                        <span>🟢 <span id="high-yield-label">Alto (>70%)</span></span>
+                    </label>
+                    <label class="yield-option">
+                        <input type="checkbox" id="yield-medium" checked>
+                        <span>🟡 <span id="medium-yield-label">Medio (50-70%)</span></span>
+                    </label>
+                    <label class="yield-option">
+                        <input type="checkbox" id="yield-low" checked>
+                        <span>🔴 <span id="low-yield-label">Bajo (<50%)</span></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <button id="playAnimation" class="btn" style="width: 100%;">
+                    ▶️ <span id="play-animation-label">Reproducir Animación</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title" id="legend-title">🗺️ Leyenda</div>
+            <div class="legend-item">
+                <span class="legend-icon">🌾</span>
+                <span id="flowering-label">Floración Activa</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🟢</span>
+                <span id="high-performance-label">Alto Rendimiento</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🟡</span>
+                <span id="medium-performance-label">Medio Rendimiento</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🔴</span>
+                <span id="low-performance-label">Bajo Rendimiento</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🌡️</span>
+                <span id="temperature-label">Datos de Temperatura</span>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel" id="infoPanel">
+            <div class="info-title" id="info-title">Información del Área</div>
+            <div class="info-content" id="info-content">
+                Selecciona una zona en el mapa para ver detalles
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main Script -->
+    <script>
+        // Global variables
+        let map;
+        let markers = [];
+        let currentDate = 1; // Day of year (1-365)
+        let currentLanguage = 'es';
+        let translations = {};
+        let phenologyData = [];
+        let filteredCrops = new Set(['arroz', 'maiz', 'trigo', 'tomate', 'naranja', 'oliva']);
+        let filteredYields = new Set(['high', 'medium', 'low']);
+        let animationInterval;
+
+        // Crop icons mapping
+        const cropIcons = {
+            'arroz': '🌾',
+            'maiz': '🌽', 
+            'trigo': '🌾',
+            'tomate': '🍅',
+            'naranja': '🍊',
+            'oliva': '🫒'
+        };
+
+        // Yield colors
+        const yieldColors = {
+            'high': '#4CAF50',    // Green
+            'medium': '#FFC107',  // Yellow  
+            'low': '#F44336'      // Red
+        };
+
+        // Initialize map
+        function initMap() {
+            // Initialize Leaflet map centered on Valencia
+            map = L.map('map').setView([39.4699, -0.3763], 8);
+
+            // Add OpenStreetMap tiles with high quality
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors | FLORASAT NASA Space Apps 2025',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Add click handler for info panel
+            map.on('click', handleMapClick);
+        }
+
+        // Handle map clicks
+        function handleMapClick(e) {
+            const lat = e.latlng.lat.toFixed(4);
+            const lng = e.latlng.lng.toFixed(4);
+            
+            const infoPanel = document.getElementById('infoPanel');
+            const infoContent = document.getElementById('info-content');
+            
+            // Simulate getting info for clicked location
+            infoContent.innerHTML = `
+                <strong>📍 Coordenadas:</strong> ${lat}, ${lng}<br>
+                <strong>📅 Fecha:</strong> ${formatDate(currentDate)}<br>
+                <strong>🌾 Cultivos Activos:</strong> ${getActiveCrops(lat, lng)}<br>
+                <strong>🌡️ Temperatura Est.:</strong> ${getEstimatedTemp(currentDate)}°C<br>
+                <strong>💧 Humedad:</strong> ${60 + Math.random() * 20}%<br>
+                <strong>📊 NDVI Promedio:</strong> ${(0.3 + Math.random() * 0.4).toFixed(3)}
+            `;
+            
+            infoPanel.classList.add('show');
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                infoPanel.classList.remove('show');
+            }, 5000);
+        }
+
+        // Get active crops for a location (simulated)
+        function getActiveCrops(lat, lng) {
+            const crops = ['arroz', 'maiz', 'trigo', 'tomate'];
+            const activeCrops = crops.filter(() => Math.random() > 0.6);
+            return activeCrops.length > 0 ? activeCrops.join(', ') : 'Ninguno';
+        }
+
+        // Get estimated temperature for day of year
+        function getEstimatedTemp(dayOfYear) {
+            // Simulate Valencia temperature curve
+            const amplitude = 12; // Temperature variation
+            const baseline = 18;  // Average temperature
+            const temp = baseline + amplitude * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365);
+            return Math.round(temp);
+        }
+
+        // Format day of year to readable date
+        function formatDate(dayOfYear) {
+            const date = new Date(2025, 0, dayOfYear);
+            const months = currentLanguage === 'es' ? 
+                ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] :
+                ['January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            return `${date.getDate()} ${months[date.getMonth()]} 2025`;
+        }
+
+        // Load phenology data
+        async function loadPhenologyData() {
+            try {
+                // Simulate loading multiple regions with different crops
+                const regions = [
+                    {lat: 39.4699, lng: -0.3763, crop: 'arroz', yield: 'high'},
+                    {lat: 39.5699, lng: -0.2763, crop: 'maiz', yield: 'medium'},
+                    {lat: 39.3699, lng: -0.4763, crop: 'trigo', yield: 'high'},
+                    {lat: 39.6699, lng: -0.1763, crop: 'tomate', yield: 'low'},
+                    {lat: 39.2699, lng: -0.5763, crop: 'naranja', yield: 'medium'},
+                    {lat: 39.7699, lng: -0.0763, crop: 'oliva', yield: 'high'},
+                ];
+
+                // Generate synthetic phenology events
+                phenologyData = [];
+                regions.forEach((region, index) => {
+                    // Generate multiple flowering periods for each region
+                    const numEvents = 1 + Math.floor(Math.random() * 3);
+                    
+                    for (let i = 0; i < numEvents; i++) {
+                        const startDay = 50 + Math.random() * 200; // Random start between Feb-Aug
+                        const duration = 30 + Math.random() * 60;  // 30-90 day duration
+                        
+                        phenologyData.push({
+                            id: `${index}_${i}`,
+                            lat: region.lat + (Math.random() - 0.5) * 0.1,
+                            lng: region.lng + (Math.random() - 0.5) * 0.1,
+                            crop: region.crop,
+                            yieldLevel: region.yield,
+                            startDay: Math.floor(startDay),
+                            endDay: Math.floor(startDay + duration),
+                            peakDay: Math.floor(startDay + duration/2),
+                            amplitude: 0.2 + Math.random() * 0.4,
+                            temperature: getEstimatedTemp(startDay + duration/2),
+                            yieldPercent: region.yield === 'high' ? 70 + Math.random() * 25 :
+                                        region.yield === 'medium' ? 50 + Math.random() * 20 :
+                                        20 + Math.random() * 30
+                        });
+                    }
+                });
+
+                console.log('📊 Phenology data loaded:', phenologyData.length, 'events');
+            } catch (error) {
+                console.error('Error loading phenology data:', error);
+            }
+        }
+
+        // Update map markers based on current date and filters
+        function updateMapMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Filter events for current date
+            const activeEvents = phenologyData.filter(event => 
+                currentDate >= event.startDay && 
+                currentDate <= event.endDay &&
+                filteredCrops.has(event.crop) &&
+                filteredYields.has(event.yieldLevel)
+            );
+
+            // Add markers for active events
+            activeEvents.forEach(event => {
+                const icon = L.divIcon({
+                    html: `
+                        <div style="
+                            background: ${yieldColors[event.yieldLevel]};
+                            border: 2px solid white;
+                            border-radius: 50%;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 16px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">${cropIcons[event.crop]}</div>
+                    `,
+                    className: 'custom-crop-marker',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                const marker = L.marker([event.lat, event.lng], { icon }).addTo(map);
+                
+                // Add popup with event details
+                marker.bindPopup(`
+                    <div style="text-align: center; min-width: 200px;">
+                        <h4>${cropIcons[event.crop]} ${event.crop.charAt(0).toUpperCase() + event.crop.slice(1)}</h4>
+                        <p><strong>📅 Período:</strong> ${formatDate(event.startDay)} - ${formatDate(event.endDay)}</p>
+                        <p><strong>🌡️ Temperatura:</strong> ${event.temperature}°C</p>
+                        <p><strong>📈 Rendimiento:</strong> ${event.yieldPercent.toFixed(1)}% 
+                           <span style="color: ${yieldColors[event.yieldLevel]};">●</span></p>
+                        <p><strong>📊 Amplitud NDVI:</strong> ${event.amplitude.toFixed(3)}</p>
+                        <small>Pico esperado: ${formatDate(event.peakDay)}</small>
+                    </div>
+                `);
+
+                markers.push(marker);
+            });
+
+            console.log(`📍 Showing ${activeEvents.length} active events for day ${currentDate}`);
+        }
+
+        // Load translations
+        async function loadTranslations(language = 'es') {
+            try {
+                const response = await fetch(`/api/i18n/translations?language=${language}`);
+                translations = await response.json();
+                currentLanguage = language;
+                updateUITexts();
+            } catch (error) {
+                console.error('Error loading translations:', error);
+            }
+        }
+
+        // Update UI texts with current language
+        function updateUITexts() {
+            // Timeline
+            document.getElementById('timeline-title').textContent = 
+                translations.temporal_navigation || 'Navegación Temporal';
+            
+            // Filters
+            document.getElementById('filters-title').textContent = 
+                translations.filters || 'Filtros';
+            document.getElementById('crop-filter-label').textContent = 
+                `🌾 ${translations.crop_types || 'Tipos de Cultivo'}:`;
+            document.getElementById('yield-filter-label').textContent = 
+                `📈 ${translations.yield_level || 'Nivel de Rendimiento'}:`;
+            
+            // Crop labels
+            document.getElementById('rice-label').textContent = translations.rice || 'Arroz';
+            document.getElementById('corn-label').textContent = translations.corn || 'Maíz';
+            document.getElementById('wheat-label').textContent = translations.wheat || 'Trigo';
+            document.getElementById('tomato-label').textContent = translations.tomato || 'Tomate';
+            document.getElementById('orange-label').textContent = translations.orange || 'Naranja';
+            document.getElementById('olive-label').textContent = translations.olive || 'Oliva';
+            
+            // Yield labels  
+            document.getElementById('high-yield-label').textContent = 
+                translations.high_yield || 'Alto (>70%)';
+            document.getElementById('medium-yield-label').textContent = 
+                translations.medium_yield || 'Medio (50-70%)';
+            document.getElementById('low-yield-label').textContent = 
+                translations.low_yield || 'Bajo (<50%)';
+            
+            // Animation button
+            document.getElementById('play-animation-label').textContent = 
+                translations.play_animation || 'Reproducir Animación';
+            
+            // Legend
+            document.getElementById('legend-title').textContent = 
+                `🗺️ ${translations.legend || 'Leyenda'}`;
+            document.getElementById('flowering-label').textContent = 
+                translations.active_flowering || 'Floración Activa';
+            document.getElementById('high-performance-label').textContent = 
+                translations.high_performance || 'Alto Rendimiento';
+            document.getElementById('medium-performance-label').textContent = 
+                translations.medium_performance || 'Medio Rendimiento';
+            document.getElementById('low-performance-label').textContent = 
+                translations.low_performance || 'Bajo Rendimiento';
+            document.getElementById('temperature-label').textContent = 
+                translations.temperature_data || 'Datos de Temperatura';
+            
+            // Info panel
+            document.getElementById('info-title').textContent = 
+                translations.area_information || 'Información del Área';
+            
+            // Update current date display
+            updateDateDisplay();
+        }
+
+        // Update date display
+        function updateDateDisplay() {
+            const dateElement = document.getElementById('current-date');
+            dateElement.textContent = formatDate(currentDate);
+        }
+
+        // Handle timeline slider change
+        function handleTimelineChange(value) {
+            currentDate = parseInt(value);
+            updateDateDisplay();
+            updateMapMarkers();
+        }
+
+        // Handle crop filter toggle
+        function toggleCropFilter(crop) {
+            if (filteredCrops.has(crop)) {
+                filteredCrops.delete(crop);
+            } else {
+                filteredCrops.add(crop);
+            }
+            updateMapMarkers();
+        }
+
+        // Handle yield filter toggle
+        function toggleYieldFilter(yieldLevel) {
+            if (filteredYields.has(yieldLevel)) {
+                filteredYields.delete(yieldLevel);
+            } else {
+                filteredYields.add(yieldLevel);
+            }
+            updateMapMarkers();
+        }
+
+        // Play animation
+        function playAnimation() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+                document.getElementById('play-animation-label').textContent = 
+                    translations.play_animation || 'Reproducir Animación';
+                return;
+            }
+
+            document.getElementById('play-animation-label').textContent = 
+                translations.stop_animation || 'Parar Animación';
+            
+            let day = 1;
+            animationInterval = setInterval(() => {
+                currentDate = day;
+                document.getElementById('dateSlider').value = day;
+                updateDateDisplay();
+                updateMapMarkers();
+                
+                day += 5; // Advance 5 days each step
+                if (day > 365) {
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                    document.getElementById('play-animation-label').textContent = 
+                        translations.play_animation || 'Reproducir Animación';
+                }
+            }, 200); // 200ms between frames
+        }
+
+        // Reset view
+        function resetView() {
+            map.setView([39.4699, -0.3763], 8);
+            currentDate = 1;
+            document.getElementById('dateSlider').value = 1;
+            updateDateDisplay();
+            updateMapMarkers();
+            
+            // Reset filters
+            filteredCrops = new Set(['arroz', 'maiz', 'trigo', 'tomate', 'naranja', 'oliva']);
+            filteredYields = new Set(['high', 'medium', 'low']);
+            
+            // Update filter UI
+            document.querySelectorAll('.crop-button').forEach(btn => btn.classList.add('active'));
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        // Hide loading
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Initialize everything
+        async function init() {
+            console.log('🚀 Initializing FLORASAT Interactive Map...');
+            
+            // Initialize map
+            initMap();
+            
+            // Load translations
+            await loadTranslations();
+            
+            // Load phenology data
+            await loadPhenologyData();
+            
+            // Initial map update
+            updateMapMarkers();
+            
+            // Hide loading
+            hideLoading();
+            
+            // Setup event listeners
+            document.getElementById('dateSlider').addEventListener('input', (e) => {
+                handleTimelineChange(e.target.value);
+            });
+            
+            document.getElementById('languageSelect').addEventListener('change', (e) => {
+                loadTranslations(e.target.value);
+            });
+            
+            document.getElementById('resetView').addEventListener('click', resetView);
+            document.getElementById('playAnimation').addEventListener('click', playAnimation);
+            
+            // Crop filter buttons
+            document.querySelectorAll('.crop-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const crop = e.currentTarget.dataset.crop;
+                    toggleCropFilter(crop);
+                    e.currentTarget.classList.toggle('active');
+                });
+            });
+            
+            // Yield filter checkboxes
+            document.getElementById('yield-high').addEventListener('change', (e) => {
+                toggleYieldFilter('high');
+            });
+            document.getElementById('yield-medium').addEventListener('change', (e) => {
+                toggleYieldFilter('medium');
+            });
+            document.getElementById('yield-low').addEventListener('change', (e) => {
+                toggleYieldFilter('low');
+            });
+            
+            console.log('✅ FLORASAT Interactive Map initialized successfully!');
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

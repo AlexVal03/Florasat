@@ -28,6 +28,17 @@ async def root():
             html = f.read()
     return HTMLResponse(content=html)
 
+@app.get('/map', response_class=HTMLResponse)
+async def interactive_map():
+    """🌍 Mapa interactivo con timeline para navegación temporal de eventos fenológicos"""
+    try:
+        with open('app/static/map.html', 'r', encoding='utf-8') as f:
+            html = f.read()
+    except UnicodeDecodeError:
+        with open('app/static/map.html', 'r', encoding='utf-8', errors='replace') as f:
+            html = f.read()
+    return HTMLResponse(content=html)
+
 @app.get('/health')
 async def health():
     return {'status': 'ok'}
