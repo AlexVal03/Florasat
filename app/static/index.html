@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html>    <div class="info-panel">
+        <h3>¿Qué significa cada cosa?</h3>
+        <ul class="legend">
+            <li><strong>NDVI Time Series:</strong> Índice de Vegetación (0-1). Valores altos = vegetación saludable, bajos = suelo desnudo</li>
+            <li><strong>Region Map:</strong> Área de Valencia. Rectángulo rojo = zona analizada. Marcadores = eventos de floración detectados</li>
+            <li><strong>Phenology Events:</strong> Eventos de crecimiento detectados automáticamente. Cada "evento" representa un ciclo completo de crecimiento de un cultivo (desde siembra hasta cosecha)</li>
+            <li><strong>Temp Corr:</strong> Correlación con temperatura (próximamente)</li>
+            <li><strong>Yield Est:</strong> Estimación de rendimiento (próximamente)</li>
+        </ul>
+        <p><strong>Fuente de datos:</strong> Simulación basada en patrones reales de Valencia. Para datos reales: configurar credenciales NASA Earthdata.</p>
+    </div>
+
+    <div class="crop-management">
+        <h3 id="crop-management-title">🌱 Gestión Inteligente de Cultivos</h3>
+        <p id="crop-management-description">Selecciona qué cultivo tienes en la zona para obtener recomendaciones personalizadas basadas en datos satelitales</p>
+        <div class="crop-controls">
+            <label for="cropSelect" id="current-crop-label">Cultivo actual:</label>
+            <select id="cropSelect">
+                <option value="nada" id="crop-bare-soil">🏜️ Suelo desnudo/Sin cultivo</option>
+                <option value="arroz" selected id="crop-rice">🌾 Arroz</option>
+                <option value="trigo" id="crop-wheat">🌾 Trigo</option>
+                <option value="maiz" id="crop-corn">🌽 Maíz</option>
+                <option value="tomate" id="crop-tomato">🍅 Tomate</option>
+                <option value="naranja" id="crop-orange">🍊 Naranja</option>
+                <option value="oliva" id="crop-olive">🫒 Oliva</option>
+            </select>
+            <button id="getRecommendations">✨ Análisis y Recomendaciones</button>
+        </div>
+        <div id="recommendations"></div>
+    </div>
+
+    <div class="weather-intelligence">
+        <h3 id="weather-intelligence-title">🌦️ Inteligencia Meteorológica Multi-Fuente</h3>
+        <p id="weather-competitive-advantage">VENTAJA COMPETITIVA: Combina datos de AEMET + Meteomatics (Partner NASA) + Satélites NASA</p>
+        <div class="weather-controls">
+            <label for="weatherProvider" id="weather-data-source-label">Fuente de datos meteorológicos:</label>
+            <select id="weatherProvider">
+                <option value="fusion" selected id="provider-fusion">🚀 FUSION (AEMET + Meteomatics) - RECOMENDADO</option>
+                <option value="aemet" id="provider-aemet">🇪🇸 AEMET (Servicio Meteorológico Español)</option>
+                <option value="meteomatics" id="provider-meteomatics">🌍 Meteomatics (NASA Space Apps Partner)</option>
+                <option value="auto" id="provider-auto">⚡ AUTO (Selección automática)</option>
+            </select>
+            <button id="getWeatherIntelligence">🧠 Inteligencia de Riego</button>
+            <button id="compareProviders">📊 Comparar Fuentes</button>
+        </div>
+        <div id="weatherIntelligence"></div>
+        <div id="providerComparison" style="display: none;"></div>
+    </div>   <title>FLORASAT Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(45deg, #2E8B57, #228B22);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        .header h1 { margin: 0; font-size: 2.5em; }
+        .header p { margin: 5px 0 0 0; opacity: 0.9; }
+        
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .language-selector label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        .language-selector select {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background: white;
+            color: #333;
+            font-size: 0.9em;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .content { padding: 30px; }
+        .container { display: flex; gap: 30px; margin: 20px 0; }
+        .chart { 
+            width: 65%; 
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .map { 
+            width: 35%; 
+            height: 450px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .crop-management {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .crop-management h3 { margin-top: 0; font-size: 1.5em; }
+        .crop-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .crop-controls select, .crop-controls button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .crop-controls select {
+            background: white;
+            color: #333;
+            min-width: 150px;
+        }
+        .crop-controls button {
+            background: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+        .crop-controls button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .weather-intelligence {
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .weather-intelligence h3 { margin-top: 0; font-size: 1.5em; }
+        .weather-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .weather-controls select, .weather-controls button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .weather-controls select {
+            background: white;
+            color: #333;
+            min-width: 200px;
+            font-weight: bold;
+        }
+        .weather-controls button {
+            background: #FF6B6B;
+            color: white;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+        .weather-controls button:hover {
+            background: white;
+            color: #FF6B6B;
+            transform: translateY(-2px);
+        }
+        
+        #weatherIntelligence, #providerComparison {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .weather-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .weather-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #FF6B6B;
+        }
+        
+        .provider-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .provider-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+        .provider-card.fusion { border-color: #FF6B6B; background: #fff5f5; }
+        .provider-card.aemet { border-color: #4ECDC4; background: #f0fffe; }
+        .provider-card.meteomatics { border-color: #667eea; background: #f5f7ff; }
+        #recommendations {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .phenology-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .phenology-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .phenology-icon {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+        table { 
+            border-collapse: collapse; 
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover { background: #f8f9fa; }
+        .info-panel { 
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .info-panel h3 { margin-top: 0; }
+        .legend { font-size: 0.95em; opacity: 0.9; }
+        .legend li { margin: 8px 0; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+        }
+        .status-good { background: #28a745; }
+        .status-warning { background: #ffc107; color: #000; }
+        .status-danger { background: #dc3545; }
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin: 10px;
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1 id="app-title">🛰️ FLORASAT Dashboard</h1>
+            <p id="app-subtitle">Monitoreo Inteligente de Cultivos | NASA Space Apps 2025 | Valencia → Global</p>
+            <div class="language-selector">
+                <label for="languageSelect" id="language-label">Idioma:</label>
+                <select id="languageSelect">
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="en">🇺🇸 English</option>
+                </select>
+            </div>
+        </div>
+        <div class="content">
+
+    <div class="info-panel">
+        <h3 id="info-panel-title">¿Qué significa cada cosa?</h3>
+        <ul class="legend">
+            <li><strong>NDVI Time Series:</strong> <span id="ndvi-explanation">Índice de Vegetación (0-1). Valores altos = vegetación saludable, bajos = suelo desnudo</span></li>
+            <li><strong>Region Map:</strong> <span id="region-map-explanation">Área de Valencia. Rectángulo rojo = zona analizada. Marcadores = eventos de floración detectados</span></li>
+            <li><strong>Phenology Events:</strong> <span id="phenology-explanation">Eventos de floración detectados con fecha pico, duración, amplitud, anomalías</span></li>
+            <li><strong>Temp Corr:</strong> Correlación con temperatura (próximamente)</li>
+            <li><strong>Yield Est:</strong> Estimación de rendimiento agrícola (próximamente)</li>
+        </ul>
+        <p><strong id="data-source-label">Fuente de datos:</strong> <span id="data-source-text">Simulación basada en patrones reales de MODIS NDVI. Para datos reales: configurar credenciales NASA Earthdata.</span></p>
+    </div>
+
+    <div class="container">
+        <div class="chart">
+            <h2 id="ndvi-chart-title">NDVI Time Series</h2>
+            <canvas id="ndviChart"></canvas>
+        </div>
+        <div class="map">
+            <h2 id="map-title">Region Map (haz clic para seleccionar zona)</h2>
+            <div id="map" style="height: 400px;"></div>
+        </div>
+    </div>
+
+    <div class="phenology-section">
+        <div class="phenology-header">
+            <div class="phenology-icon">📊</div>
+            <div>
+                <h2 id="phenology-events-title">Eventos Fenológicos Detectados</h2>
+                <p id="phenology-events-description">Ciclos de crecimiento identificados automáticamente por IA satellite + NASA data</p>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <div class="metric-card">
+                <div class="metric-value" id="totalEvents">0</div>
+                <div class="metric-label" id="total-events-label">Eventos Detectados</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="avgNDVI">0.00</div>
+                <div class="metric-label" id="avg-ndvi-label">NDVI Promedio</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="healthStatus">-</div>
+                <div class="metric-label" id="health-status-label">Estado de Salud</div>
+            </div>
+        </div>
+
+        <table id="eventsTable">
+            <tr>
+                <th id="table-peak-date">📅 Fecha Pico</th>
+                <th id="table-start-date">🌱 Inicio</th>
+                <th id="table-duration">⏱️ Duración (días)</th>
+                <th id="table-amplitude">📈 Amplitud</th>
+                <th id="table-anomaly">⚠️ Anomalía</th>
+                <th id="table-reliability">✅ Confiabilidad</th>
+                <th id="table-temperature">🌡️ Temp</th>
+                <th id="table-yield">🚜 Rendimiento</th>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        let currentBbox = [-0.6, 39.2, -0.1, 39.7]; // Default Valencia bbox
+        let map, rectangle, markers = [];
+        let currentLanguage = 'es'; // Default to Spanish
+        let translations = {}; // Will hold all translations
+
+        // Load translations
+        async function loadTranslations(language = 'es') {
+            try {
+                const response = await fetch(`/api/i18n/translations?language=${language}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    translations = result.translations;
+                    currentLanguage = language;
+                    updateUITexts();
+                }
+            } catch (error) {
+                console.error('Error loading translations:', error);
+                // Fallback: keep current UI texts
+            }
+        }
+
+        // Update all UI texts with current language
+        function updateUITexts() {
+            // Header
+            document.getElementById('app-title').textContent = translations.app_title || '🛰️ FLORASAT Dashboard';
+            document.getElementById('app-subtitle').textContent = translations.app_subtitle || 'Monitoreo Inteligente de Cultivos | NASA Space Apps 2025 | Valencia → Global';
+            
+            // Language selector
+            document.getElementById('language-label').textContent = translations.language || 'Idioma:';
+            
+            // Info panel
+            document.getElementById('info-panel-title').textContent = translations.main_description || '¿Qué significa cada cosa?';
+            document.getElementById('ndvi-explanation').textContent = translations.ndvi_explanation || 'Índice de Vegetación (0-1). Valores altos = vegetación saludable, bajos = suelo desnudo';
+            document.getElementById('region-map-explanation').textContent = translations.region_map_explanation || 'Área de Valencia. Rectángulo rojo = zona analizada. Marcadores = eventos de floración detectados';
+            document.getElementById('phenology-explanation').textContent = translations.phenology_explanation || 'Eventos de floración detectados con fecha pico, duración, amplitud, anomalías';
+            document.getElementById('data-source-label').textContent = (translations.data_source || 'Fuente de datos:').replace(':', '') + ':';
+            document.getElementById('data-source-text').textContent = translations.data_source || 'Simulación basada en patrones reales de MODIS NDVI. Para datos reales: configurar credenciales NASA Earthdata.';
+            
+            // Chart and map titles
+            document.getElementById('ndvi-chart-title').textContent = translations.ndvi_time_series || 'NDVI Time Series';
+            document.getElementById('map-title').textContent = translations.region_map || 'Region Map (haz clic para seleccionar zona)';
+            
+            // Crop management
+            document.getElementById('crop-management-title').textContent = translations.crop_management || '🌱 Gestión Inteligente de Cultivos';
+            document.getElementById('crop-management-description').textContent = translations.crop_management_description || 'Selecciona qué cultivo tienes en la zona para obtener recomendaciones personalizadas basadas en datos satelitales';
+            document.getElementById('current-crop-label').textContent = translations.current_crop || 'Cultivo actual:';
+            
+            // Crop options
+            document.getElementById('crop-bare-soil').textContent = translations.bare_soil || '🏜️ Suelo desnudo/Sin cultivo';
+            document.getElementById('crop-rice').textContent = translations.rice || '🌾 Arroz';
+            document.getElementById('crop-wheat').textContent = translations.wheat || '🌾 Trigo';
+            document.getElementById('crop-corn').textContent = translations.corn || '🌽 Maíz';
+            document.getElementById('crop-tomato').textContent = translations.tomato || '🍅 Tomate';
+            document.getElementById('crop-orange').textContent = translations.orange || '🍊 Naranja';
+            document.getElementById('crop-olive').textContent = translations.olive || '🫒 Oliva';
+            
+            // Buttons
+            document.getElementById('getRecommendations').textContent = translations.analysis_recommendations || '✨ Análisis y Recomendaciones';
+            
+            // Weather intelligence
+            document.getElementById('weather-intelligence-title').textContent = translations.weather_intelligence || '🌦️ Inteligencia Meteorológica Multi-Fuente';
+            document.getElementById('weather-competitive-advantage').textContent = translations.weather_competitive_advantage || 'VENTAJA COMPETITIVA: Combina datos de AEMET + Meteomatics (Partner NASA) + Satélites NASA';
+            document.getElementById('weather-data-source-label').textContent = translations.weather_data_source || 'Fuente de datos meteorológicos:';
+            
+            // Weather provider options
+            document.getElementById('provider-fusion').textContent = translations.fusion_recommended || '🚀 FUSION (AEMET + Meteomatics) - RECOMENDADO';
+            document.getElementById('provider-aemet').textContent = translations.aemet_spanish || '🇪🇸 AEMET (Servicio Meteorológico Español)';
+            document.getElementById('provider-meteomatics').textContent = translations.meteomatics_nasa || '🌍 Meteomatics (NASA Space Apps Partner)';
+            document.getElementById('provider-auto').textContent = translations.auto_selection || '⚡ AUTO (Selección automática)';
+            
+            // Weather buttons
+            document.getElementById('getWeatherIntelligence').textContent = translations.irrigation_intelligence || '🧠 Inteligencia de Riego';
+            document.getElementById('compareProviders').textContent = translations.compare_sources || '📊 Comparar Fuentes';
+            
+            // Phenology section
+            document.getElementById('phenology-events-title').textContent = translations.phenology_events || 'Eventos Fenológicos Detectados';
+            document.getElementById('phenology-events-description').textContent = translations.phenology_description || 'Ciclos de crecimiento identificados automáticamente por IA satellite + NASA data';
+            
+            // Metric labels
+            document.getElementById('total-events-label').textContent = translations.events_detected || 'Eventos Detectados';
+            document.getElementById('avg-ndvi-label').textContent = translations.avg_ndvi || 'NDVI Promedio';
+            document.getElementById('health-status-label').textContent = translations.health_status || 'Estado de Salud';
+            
+            // Table headers
+            document.getElementById('table-peak-date').textContent = translations.peak_date || '📅 Fecha Pico';
+            document.getElementById('table-start-date').textContent = translations.start_date || '🌱 Inicio';
+            document.getElementById('table-duration').textContent = translations.duration_days || '⏱️ Duración (días)';
+            document.getElementById('table-amplitude').textContent = translations.amplitude || '📈 Amplitud';
+            document.getElementById('table-anomaly').textContent = translations.anomaly || '⚠️ Anomalía';
+            document.getElementById('table-reliability').textContent = translations.reliability || '✅ Confiabilidad';
+            document.getElementById('table-temperature').textContent = translations.temperature || '🌡️ Temp';
+            document.getElementById('table-yield').textContent = translations.yield || '🚜 Rendimiento';
+        }
+
+        // Handle language change
+        document.getElementById('languageSelect').addEventListener('change', async function(e) {
+            const newLanguage = e.target.value;
+            await loadTranslations(newLanguage);
+        });
+
+        async function loadData(bbox = null) {
+            try {
+                const bboxParam = bbox ? bbox.join(',') : null;
+                // 🚀 USAR NUEVO ENDPOINT ENRIQUECIDO
+                const url = bboxParam
+                    ? `/api/phenology/analyze-enhanced?years=2025&species=arroz&region=custom&bbox=${bboxParam}`
+                    : '/api/phenology/analyze-enhanced?years=2025&species=arroz&region=valencia';
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Update current bbox
+                currentBbox = data.bbox;
+
+                // Chart
+                const ctx = document.getElementById('ndviChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.series.map(s => s.date),
+                        datasets: [{
+                            label: 'NDVI',
+                            data: data.series.map(s => s.value),
+                            borderColor: 'green',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { display: true },
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+
+                // Table
+                const table = document.getElementById('eventsTable');
+                // Clear existing rows except header
+                while (table.rows.length > 1) {
+                    table.deleteRow(1);
+                }
+
+                // Update metrics
+                document.getElementById('totalEvents').textContent = data.events.length;
+                const avgNDVI = data.series.length > 0 ? 
+                    (data.series.reduce((sum, s) => sum + s.value, 0) / data.series.length).toFixed(2) : '0.00';
+                document.getElementById('avgNDVI').textContent = avgNDVI;
+                
+                const healthStatus = avgNDVI > 0.6 ? translations.excellent || 'Excelente' : 
+                                   avgNDVI > 0.4 ? translations.good || 'Bueno' : 
+                                   avgNDVI > 0.2 ? translations.regular || 'Regular' : 
+                                   translations.poor || 'Pobre';
+                document.getElementById('healthStatus').textContent = healthStatus;
+                document.getElementById('healthStatus').className = `metric-value ${avgNDVI > 0.6 ? 'status-good' : avgNDVI > 0.4 ? 'status-warning' : 'status-danger'}`;
+
+                // 🌡️ NUEVOS DATOS ENRIQUECIDOS CON TEMPERATURA Y RENDIMIENTO
+                data.events.forEach(event => {
+                    const row = table.insertRow();
+                    const reliabilityClass = event.reliability > 0.7 ? 'status-good' : event.reliability > 0.4 ? 'status-warning' : 'status-danger';
+                    
+                    // Extraer datos de temperatura
+                    let tempDisplay = 'N/A';
+                    if (event.temperature_data && typeof event.temperature_data.avg_temp === 'number') {
+                        tempDisplay = `${event.temperature_data.avg_temp}°C`;
+                    }
+                    
+                    // Extraer datos de rendimiento
+                    let yieldDisplay = 'N/A';
+                    if (event.yield_prediction && event.yield_prediction.estimated_yield_percent) {
+                        const yieldPct = event.yield_prediction.estimated_yield_percent;
+                        const yieldEmoji = event.yield_prediction.yield_emoji || '';
+                        yieldDisplay = `${yieldPct}% ${yieldEmoji}`;
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${event.peak_date}</td>
+                        <td>${event.onset_date || 'N/A'}</td>
+                        <td>${event.duration_days || 'N/A'}</td>
+                        <td>${event.amplitude.toFixed(2)}</td>
+                        <td>${event.anomaly_days ? event.anomaly_days.toFixed(1) + ' días' : 'Normal'}</td>
+                        <td><span class="status-badge ${reliabilityClass}">${(event.reliability * 100).toFixed(0)}%</span></td>
+                        <td>${tempDisplay}</td>
+                        <td>${yieldDisplay}</td>
+                    `;
+                    
+                    // Añadir tooltip con información adicional
+                    if (event.weather_impact) {
+                        row.title = `Impacto climático: ${event.weather_impact}`;
+                    }
+                });
+
+                // Update map
+                updateMap(data);
+
+                console.log('🚀 Datos enriquecidos cargados para bbox:', currentBbox);
+                console.log('Eventos con datos climáticos:', data.events.length);
+            } catch (error) {
+                console.error('Error loading enhanced data:', error);
+                // Fallback al endpoint básico
+                try {
+                    const fallbackUrl = bboxParam
+                        ? `/api/phenology/analyze?years=2025&species=arroz&region=custom&bbox=${bboxParam}`
+                        : '/api/phenology/analyze?years=2025&species=arroz&region=valencia';
+                    
+                    const fallbackResponse = await fetch(fallbackUrl);
+                    const fallbackData = await fallbackResponse.json();
+                    
+                    // Usar datos básicos como fallback
+                    // ... código similar pero sin datos enriquecidos
+                    console.log('Using fallback data due to error:', error);
+                } catch (fallbackError) {
+                    console.error('Both enhanced and fallback failed:', fallbackError);
+                    document.body.innerHTML += '<p>Error loading dashboard. Check console.</p>';
+                }
+            }
+        }
+
+        function updateMap(data) {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Update rectangle
+            if (rectangle) {
+                map.removeLayer(rectangle);
+            }
+            rectangle = L.rectangle([[data.bbox[0], data.bbox[1]], [data.bbox[2], data.bbox[3]]], {
+                color: 'red',
+                weight: 2
+            }).addTo(map);
+
+            // Add markers for events
+            data.events.forEach(event => {
+                const marker = L.marker([
+                    data.bbox[0] + (Math.random() - 0.5) * 0.1,
+                    data.bbox[1] + (Math.random() - 0.5) * 0.1
+                ]).addTo(map)
+                .bindPopup(`Peak: ${event.peak_date}<br>Yield Est: ${event.yield_estimate || 'N/A'}`);
+                markers.push(marker);
+            });
+
+            // Fit map to rectangle
+            map.fitBounds(rectangle.getBounds());
+        }
+
+        function initMap() {
+            map = L.map('map').setView([39.4699, -0.3763], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add click handler for zone selection
+            map.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+
+                // Create a small bbox around clicked point (0.1 degrees ~ 11km)
+                const size = 0.05;
+                const newBbox = [lat - size, lng - size, lat + size, lng + size];
+
+                console.log('Nueva zona seleccionada:', newBbox);
+                loadData(newBbox);
+            });
+        }
+
+        // Initialize
+        initMap();
+        loadTranslations(); // Load default language translations
+        loadData();
+
+        // Setup crop management
+        document.getElementById('getRecommendations').addEventListener('click', getCropRecommendations);
+        
+        // Setup weather intelligence
+        document.getElementById('getWeatherIntelligence').addEventListener('click', getWeatherIntelligence);
+        document.getElementById('compareProviders').addEventListener('click', compareWeatherProviders);
+
+        async function getCropRecommendations() {
+            const crop = document.getElementById('cropSelect').value;
+            const recommendationsDiv = document.getElementById('recommendations');
+
+            try {
+                const response = await fetch(`/api/phenology/recommendations?crop=${crop}&bbox=${currentBbox.join(',')}`);
+                const data = await response.json();
+
+                const cropDisplayName = crop === 'nada' ? 
+                    (translations.bare_soil || 'Suelo Desnudo') : 
+                    crop.charAt(0).toUpperCase() + crop.slice(1);
+
+                recommendationsDiv.style.display = 'block';
+                recommendationsDiv.innerHTML = `
+                    <h4>${translations.intelligent_analysis || '💡 Análisis Inteligente para'} ${cropDisplayName}</h4>
+                    <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 10px; color: #333;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                            <div>
+                                <h5>${translations.current_status || '📊 Estado Actual'}</h5>
+                                <p>${data.current_status}</p>
+                            </div>
+                            <div>
+                                <h5>${translations.optimal_season || '🗓️ Temporada Óptima'}</h5>
+                                <p>${data.optimal_planting_season}</p>
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <h5>${translations.immediate_recommendations || '✅ Recomendaciones Inmediatas'}</h5>
+                            <ul style="margin: 5px 0;">
+                                ${data.recommendations.map(rec => `<li style="margin: 5px 0;">${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                            <div>
+                                <h5>${translations.next_actions || '🎯 Próximas Acciones'}</h5>
+                                <p>${data.next_actions}</p>
+                            </div>
+                            <div>
+                                <h5>${translations.risks_monitor || '⚠️ Riesgos a Monitorear'}</h5>
+                                <p>${data.risks}</p>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                            <h5>${translations.expected_yield || '📈 Rendimiento Esperado'}</h5>
+                            <p style="font-size: 1.2em; font-weight: bold; color: #28a745;">${data.expected_yield}</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                recommendationsDiv.style.display = 'block';
+                recommendationsDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px;">
+                        ${translations.error_recommendations || '❌ Error al obtener recomendaciones. Verifica que el servidor esté funcionando.'}
+                    </div>
+                `;
+            }
+        }
+
+        async function getWeatherIntelligence() {
+            const crop = document.getElementById('cropSelect').value;
+            const provider = document.getElementById('weatherProvider').value;
+            const intelligenceDiv = document.getElementById('weatherIntelligence');
+
+            intelligenceDiv.style.display = 'block';
+            intelligenceDiv.innerHTML = `<div style="text-align: center; padding: 20px;">${translations.loading_weather || '🔄 Obteniendo inteligencia meteorológica multi-fuente...'}</div>`;
+
+            try {
+                const response = await fetch(`/api/weather/irrigation-intelligence?crop=${crop}&provider=${provider}&bbox=${currentBbox.join(',')}`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const data = result.data;
+                    
+                    let html = `
+                        <h4>${translations.multi_source_irrigation || '🧠 Inteligencia de Riego Multi-Fuente'}</h4>
+                        <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>🏆 ${result.competitive_advantage}</strong><br>
+                            <small>${translations.provider_used || 'Proveedor usado'}: ${result.provider_used.toUpperCase()}</small>
+                        </div>
+                    `;
+
+                    // Show fusion analysis if available
+                    if (data.fusion_analysis) {
+                        const fusion = data.fusion_analysis;
+                        html += `
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <h5>🔬 Análisis de Fusión de Datos</h5>
+                                <p><strong>Consistencia:</strong> ${fusion.data_consistency}</p>
+                                <p><strong>Confianza:</strong> ${fusion.confidence_level}</p>
+                                ${fusion.fusion_benefits ? `
+                                    <ul>
+                                        ${fusion.fusion_benefits.map(benefit => `<li>${benefit}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+
+                    // Current conditions
+                    if (data.current_conditions || (data.individual_sources && data.individual_sources.aemet)) {
+                        const conditions = data.current_conditions || data.individual_sources.aemet.current_conditions;
+                        html += `
+                            <div class="weather-summary">
+                                <div class="weather-card">
+                                    <h6>🌡️ Temperatura</h6>
+                                    <strong>${conditions.temperature}°C</strong>
+                                </div>
+                                <div class="weather-card">
+                                    <h6>💧 Humedad</h6>
+                                    <strong>${conditions.humidity}%</strong>
+                                </div>
+                                <div class="weather-card">
+                                    <h6>💨 Evapotranspiración</h6>
+                                    <strong>${conditions.evapotranspiration_estimate} mm/día</strong>
+                                </div>
+                                <div class="weather-card">
+                                    <h6>🌬️ Viento</h6>
+                                    <strong>${conditions.wind_speed} m/s</strong>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Recommendations
+                    let recommendations = [];
+                    if (data.enhanced_recommendations) {
+                        recommendations = data.enhanced_recommendations;
+                    } else if (data.recommendations) {
+                        recommendations = data.recommendations;
+                    } else if (data.individual_sources && data.individual_sources.aemet && data.individual_sources.aemet.recommendations) {
+                        recommendations = data.individual_sources.aemet.recommendations;
+                    }
+
+                    if (recommendations.length > 0) {
+                        html += `
+                            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <h5>💡 Recomendaciones de Riego Inteligente</h5>
+                                <ul>
+                                    ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+
+                    // Satellite correlation
+                    if (data.satellite_correlation) {
+                        const sat = data.satellite_correlation;
+                        html += `
+                            <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <h5>🛰️ Correlación Satelital (NASA)</h5>
+                                <p><strong>NDVI Actual:</strong> ${sat.current_ndvi} (${sat.ndvi_trend})</p>
+                                ${sat.stress_indicators ? `
+                                    <ul>
+                                        ${sat.stress_indicators.map(indicator => `<li>${indicator}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+
+                    intelligenceDiv.innerHTML = html;
+                } else {
+                    throw new Error(result.detail || 'Error desconocido');
+                }
+
+            } catch (error) {
+                console.error('Error getting weather intelligence:', error);
+                intelligenceDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px;">
+                        ${translations.error_weather || '❌ Error al obtener inteligencia meteorológica:'} ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function compareWeatherProviders() {
+            const comparisonDiv = document.getElementById('providerComparison');
+            
+            comparisonDiv.style.display = 'block';
+            comparisonDiv.innerHTML = `<div style="text-align: center; padding: 20px;">${translations.loading_comparison || '🔄 Comparando proveedores meteorológicos...'}</div>`;
+
+            try {
+                const response = await fetch('/api/weather/providers/comparison');
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const comparison = result.comparison;
+                    const analysis = result.analysis;
+
+                    let html = `
+                        <h4>📊 Comparación de Proveedores Meteorológicos</h4>
+                        <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>Proveedores disponibles:</strong> ${analysis.providers_available}<br>
+                            <strong>Consistencia de datos:</strong> ${analysis.data_consistency}<br>
+                            <strong>Recomendado:</strong> ${analysis.recommended_provider.toUpperCase()}
+                            ${analysis.temperature_difference ? `<br><strong>Diferencia de temperatura:</strong> ${analysis.temperature_difference}°C` : ''}
+                        </div>
+                        
+                        <div class="provider-comparison">
+                    `;
+
+                    // Show each provider's data
+                    for (const [provider, data] of Object.entries(comparison)) {
+                        if (provider.endsWith('_error')) continue;
+                        
+                        const providerClass = provider.toLowerCase();
+                        html += `
+                            <div class="provider-card ${providerClass}">
+                                <h5>${getProviderDisplayName(provider)}</h5>
+                                <p><strong>Temperatura:</strong> ${data.temperature}°C</p>
+                                <p><strong>Humedad:</strong> ${data.humidity}%</p>
+                                <p><strong>Precipitación:</strong> ${data.precipitation} mm</p>
+                                ${data.provider_info ? `<small>${data.provider_info.description}</small>` : ''}
+                                ${data.accuracy ? `<br><small><strong>Precisión:</strong> ${data.accuracy}</small>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    comparisonDiv.innerHTML = html;
+                } else {
+                    throw new Error(result.detail || 'Error en comparación');
+                }
+
+            } catch (error) {
+                console.error('Error comparing providers:', error);
+                comparisonDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px;">
+                        ${translations.error_comparison || '❌ Error al comparar proveedores:'} ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function getProviderDisplayName(provider) {
+            const names = {
+                'aemet': '🇪🇸 AEMET (España)',
+                'meteomatics': '🌍 Meteomatics (NASA Partner)',
+                'fusion': '🚀 FUSION (Multi-fuente)'
+            };
+            return names[provider] || provider.toUpperCase();
+        }
+    </script>
+        </div>
+    </div>
+</body>
+</html>

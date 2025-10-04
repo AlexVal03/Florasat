@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLORASAT Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .container { display: flex; gap: 20px; }
+        .chart { width: 60%; }
+        .map { width: 40%; height: 400px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>FLORASAT Phenology Dashboard</h1>
+    <p>FLORASAT Prototype | NASA Space Apps 2025 | Valencia Pilot</p>
+    
+    <div class="container">
+        <div class="chart">
+            <h2>NDVI Time Series</h2>
+            <canvas id="ndviChart"></canvas>
+        </div>
+        <div class="map">
+            <h2>Region Map</h2>
+            <div id="map" style="height: 400px;"></div>
+        </div>
+    </div>
+    
+    <h2>Phenology Events</h2>
+    <table id="eventsTable">
+        <tr><th>Peak</th><th>Onset</th><th>Duration</th><th>Amp</th><th>Anom</th><th>Rel</th><th>Temp Corr</th><th>Yield Est</th></tr>
+    </table>
+    
+    <script>
+        async function loadData() {
+            try {
+                const response = await fetch('/api/phenology/analyze?years=2025&species=arroz&region=valencia');
+                const data = await response.json();
+                
+                // Chart
+                const ctx = document.getElementById('ndviChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.series.map(s => s.date),
+                        datasets: [{
+                            label: 'NDVI',
+                            data: data.series.map(s => s.value),
+                            borderColor: 'green',
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: { display: true },
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+                
+                // Table
+                const table = document.getElementById('eventsTable');
+                data.events.forEach(event => {
+                    const row = table.insertRow();
+                    row.innerHTML = `
+                        <td>${event.peak_date}</td>
+                        <td>${event.onset_date || 'N/A'}</td>
+                        <td>${event.duration_days || 'N/A'}</td>
+                        <td>${event.amplitude.toFixed(2)}</td>
+                        <td>${event.anomaly_days ? event.anomaly_days.toFixed(1) : 'N/A'}</td>
+                        <td>${event.reliability}</td>
+                        <td>${event.temp_correlation ? event.temp_correlation.toFixed(2) : 'N/A'}</td>
+                        <td>${event.yield_estimate ? event.yield_estimate.toFixed(2) : 'N/A'}</td>
+                    `;
+                });
+                
+                // Map
+                const map = L.map('map').setView([39.4699, -0.3763], 10);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                L.rectangle([[data.bbox[0], data.bbox[1]], [data.bbox[2], data.bbox[3]]], {
+                    color: 'red',
+                    weight: 2
+                }).addTo(map);
+                data.events.forEach(event => {
+                    L.marker([39.4699 + (Math.random() - 0.5) * 0.1, -0.3763 + (Math.random() - 0.5) * 0.1])
+                        .addTo(map)
+                        .bindPopup(`Peak: ${event.peak_date}<br>Yield Est: ${event.yield_estimate || 'N/A'}`);
+                });
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.body.innerHTML += '<p>Error loading dashboard. Check console.</p>';
+            }
+        }
+        loadData();
+    </script>
+</body>
+</html>
