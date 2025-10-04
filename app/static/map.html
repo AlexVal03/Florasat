@@ -154,6 +154,54 @@
             margin-top: 5px;
         }
 
+        /* Year Comparison */
+        .year-comparison {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .year-selector {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+
+        .year-selector option {
+            background: #333;
+            color: white;
+        }
+
+        .compare-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .compare-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .compare-button.active {
+            background: #FF6B35;
+            border-color: #FF6B35;
+        }
+
         /* Filters Panel */
         .filters-panel {
             position: absolute;
@@ -211,6 +259,38 @@
         }
 
         .crop-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Heatmap Controls */
+        .heatmap-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .heatmap-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .heatmap-button.active {
+            background: #FF6B35;
+            border-color: #FF6B35;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+        }
+
+        .heatmap-button:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
@@ -346,6 +426,106 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Alert System */
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .alert {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid;
+            border-radius: 15px;
+            padding: 15px 20px;
+            color: white;
+            backdrop-filter: blur(10px);
+            animation: slideInAlert 0.5s ease-out;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .alert:hover {
+            transform: scale(1.02);
+        }
+
+        .alert.critical {
+            border-color: #FF4444;
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        .alert.warning {
+            border-color: #FFA500;
+            background: rgba(255, 165, 0, 0.2);
+        }
+
+        .alert.info {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .alert-icon {
+            font-size: 1.2em;
+        }
+
+        .alert-message {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .alert-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideInAlert {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slideOutAlert {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+            }
+        }
     </style>
 </head>
 <body>
@@ -383,6 +563,21 @@
             <div class="timeline-header">
                 <div>📅 <span id="timeline-title">Navegación Temporal</span></div>
                 <div class="timeline-date" id="current-date">Enero 2025</div>
+                <!-- NEW: Year comparison -->
+                <div class="year-comparison">
+                    <label for="yearSelect" id="year-label">Año:</label>
+                    <select id="yearSelect" class="year-selector">
+                        <option value="2025">2025 (Actual)</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                    </select>
+                    <button id="compareYears" class="compare-button">
+                        🔄 <span id="compare-years-label">Comparar</span>
+                    </button>
+                </div>
             </div>
             <div class="timeline-slider">
                 <input type="range" min="1" max="365" value="1" class="slider" id="dateSlider">
@@ -406,6 +601,25 @@
         <!-- Filters Panel -->
         <div class="filters-panel">
             <div class="filters-title">🎛️ <span id="filters-title">Filtros</span></div>
+            
+            <!-- NEW: Heatmap Layers -->
+            <div class="filter-group">
+                <label class="filter-label" id="heatmap-layers-label">🔥 Capas de Calor:</label>
+                <div class="heatmap-controls">
+                    <button class="heatmap-button" data-layer="temperature">
+                        🌡️ <span id="temp-heatmap-label">Temperatura</span>
+                    </button>
+                    <button class="heatmap-button" data-layer="ndvi">
+                        🌱 <span id="ndvi-heatmap-label">NDVI</span>
+                    </button>
+                    <button class="heatmap-button" data-layer="humidity">
+                        💧 <span id="humidity-heatmap-label">Humedad</span>
+                    </button>
+                    <button class="heatmap-button" data-layer="yield">
+                        📈 <span id="yield-heatmap-label">Rendimiento</span>
+                    </button>
+                </div>
+            </div>
             
             <div class="filter-group">
                 <label class="filter-label" id="crop-filter-label">🌾 Tipos de Cultivo:</label>
@@ -488,6 +702,9 @@
                 Selecciona una zona en el mapa para ver detalles
             </div>
         </div>
+
+        <!-- NEW: Alert System -->
+        <div class="alert-container" id="alertContainer"></div>
     </div>
 
     <!-- Leaflet JS -->
@@ -498,6 +715,8 @@
         // Global variables
         let map;
         let markers = [];
+        let heatmapLayers = {}; // NEW: Store heatmap layers
+        let activeHeatmaps = new Set(); // NEW: Track active heatmaps
         let currentDate = 1; // Day of year (1-365)
         let currentLanguage = 'es';
         let translations = {};
@@ -505,6 +724,10 @@
         let filteredCrops = new Set(['arroz', 'maiz', 'trigo', 'tomate', 'naranja', 'oliva']);
         let filteredYields = new Set(['high', 'medium', 'low']);
         let animationInterval;
+        let alertSystem = []; // NEW: Alert tracking
+        let alertCheckInterval; // NEW: Periodic alert checking
+        let currentYear = 2025; // NEW: Current year tracking
+        let comparisonMode = false; // NEW: Comparison mode flag
 
         // Crop icons mapping
         const cropIcons = {
@@ -536,6 +759,182 @@
 
             // Add click handler for info panel
             map.on('click', handleMapClick);
+            
+            // Initialize heatmap layers
+            initHeatmapLayers();
+        }
+
+        // NEW: Initialize heatmap layers
+        function initHeatmapLayers() {
+            // Generate synthetic heatmap data for demo
+            const valenciaCenter = [39.4699, -0.3763];
+            const radius = 0.3; // Degrees around Valencia
+
+            // Temperature heatmap data
+            const temperatureData = generateHeatmapData(valenciaCenter, radius, 
+                (lat, lng, date) => {
+                    const baseTempSeason = getEstimatedTemp(date);
+                    const coastal = Math.abs(lng + 0.3763) * 50; // Distance from coast
+                    const urban = Math.abs(lat - 39.4699) * 30; // Distance from city
+                    return baseTempSeason + coastal - urban + (Math.random() - 0.5) * 5;
+                }
+            );
+
+            // NDVI heatmap data  
+            const ndviData = generateHeatmapData(valenciaCenter, radius,
+                (lat, lng, date) => {
+                    const seasonalFactor = 0.3 + 0.4 * Math.sin(2 * Math.PI * (date - 80) / 365);
+                    const elevation = (lat - 39.4699) * 0.1; // Higher = more vegetation
+                    const irrigation = Math.abs(lng + 0.3763) < 0.1 ? 0.2 : 0; // Near coast = irrigated
+                    return Math.max(0.1, Math.min(0.9, seasonalFactor + elevation + irrigation + (Math.random() - 0.5) * 0.2));
+                }
+            );
+
+            // Humidity heatmap data
+            const humidityData = generateHeatmapData(valenciaCenter, radius,
+                (lat, lng, date) => {
+                    const coastal = Math.max(0, 0.2 - Math.abs(lng + 0.3763) * 2); // Higher near coast
+                    const seasonal = 0.5 + 0.3 * Math.sin(2 * Math.PI * (date - 365/2) / 365); // Winter = humid
+                    return Math.max(0.3, Math.min(0.9, seasonal + coastal + (Math.random() - 0.5) * 0.2));
+                }
+            );
+
+            // Yield prediction heatmap data
+            const yieldData = generateHeatmapData(valenciaCenter, radius,
+                (lat, lng, date) => {
+                    const ndvi = ndviData.find(point => 
+                        Math.abs(point[0] - lat) < 0.01 && Math.abs(point[1] - lng) < 0.01
+                    )?.[2] || 0.5;
+                    const temp = temperatureData.find(point => 
+                        Math.abs(point[0] - lat) < 0.01 && Math.abs(point[1] - lng) < 0.01
+                    )?.[2] || 20;
+                    
+                    // Combine NDVI and temperature for yield prediction
+                    const tempFactor = temp > 15 && temp < 30 ? 1 : 0.7;
+                    const yieldScore = ndvi * tempFactor;
+                    return Math.max(0.1, Math.min(1.0, yieldScore + (Math.random() - 0.5) * 0.2));
+                }
+            );
+
+            // Store heatmap layers (not added to map yet)
+            heatmapLayers = {
+                temperature: {
+                    data: temperatureData,
+                    layer: null,
+                    gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'},
+                    name: 'Temperatura (°C)'
+                },
+                ndvi: {
+                    data: ndviData,
+                    layer: null,
+                    gradient: {0.1: '#8B4513', 0.3: '#DAA520', 0.5: '#ADFF2F', 0.7: '#32CD32', 1.0: '#006400'},
+                    name: 'NDVI (Índice Vegetación)'
+                },
+                humidity: {
+                    data: humidityData,
+                    layer: null,
+                    gradient: {0.3: '#FFE4B5', 0.5: '#87CEEB', 0.7: '#4169E1', 1.0: '#191970'},
+                    name: 'Humedad (%)'
+                },
+                yield: {
+                    data: yieldData,
+                    layer: null,
+                    gradient: {0.1: '#FF0000', 0.4: '#FF8C00', 0.6: '#FFD700', 0.8: '#ADFF2F', 1.0: '#008000'},
+                    name: 'Predicción Rendimiento'
+                }
+            };
+
+            console.log('🔥 Heatmap layers initialized:', Object.keys(heatmapLayers));
+        }
+
+        // Generate synthetic heatmap data
+        function generateHeatmapData(center, radius, valueFunction) {
+            const data = [];
+            const gridSize = 20; // Grid resolution
+            
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const lat = center[0] + (i / gridSize - 0.5) * radius * 2;
+                    const lng = center[1] + (j / gridSize - 0.5) * radius * 2;
+                    const value = valueFunction(lat, lng, currentDate);
+                    
+                    data.push([lat, lng, value]);
+                }
+            }
+            
+            return data;
+        }
+
+        // Toggle heatmap layer
+        function toggleHeatmapLayer(layerName) {
+            const heatmapInfo = heatmapLayers[layerName];
+            
+            if (!heatmapInfo) return;
+
+            if (activeHeatmaps.has(layerName)) {
+                // Remove layer
+                if (heatmapInfo.layer) {
+                    map.removeLayer(heatmapInfo.layer);
+                    heatmapInfo.layer = null;
+                }
+                activeHeatmaps.delete(layerName);
+            } else {
+                // Add layer
+                if (!heatmapInfo.layer) {
+                    // Create heatmap layer using simple approach (colored circles)
+                    heatmapInfo.layer = L.layerGroup();
+                    
+                    heatmapInfo.data.forEach(point => {
+                        const [lat, lng, value] = point;
+                        const color = getHeatmapColor(value, heatmapInfo.gradient);
+                        
+                        const circle = L.circle([lat, lng], {
+                            radius: 2000, // 2km radius
+                            fillColor: color,
+                            color: color,
+                            weight: 0,
+                            fillOpacity: 0.6
+                        });
+                        
+                        circle.bindTooltip(`${heatmapInfo.name}: ${formatHeatmapValue(layerName, value)}`);
+                        heatmapInfo.layer.addLayer(circle);
+                    });
+                }
+                
+                heatmapInfo.layer.addTo(map);
+                activeHeatmaps.add(layerName);
+            }
+
+            console.log(`🔥 Toggled heatmap: ${layerName}, active layers:`, Array.from(activeHeatmaps));
+        }
+
+        // Get color for heatmap value
+        function getHeatmapColor(value, gradient) {
+            const keys = Object.keys(gradient).map(Number).sort((a, b) => a - b);
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (value >= keys[i] && value <= keys[i + 1]) {
+                    return gradient[keys[i + 1]];
+                }
+            }
+            
+            return gradient[keys[keys.length - 1]];
+        }
+
+        // Format heatmap value for display
+        function formatHeatmapValue(layerName, value) {
+            switch (layerName) {
+                case 'temperature':
+                    return `${(value * 35 + 5).toFixed(1)}°C`; // Scale to realistic temperature
+                case 'ndvi':
+                    return value.toFixed(3);
+                case 'humidity':
+                    return `${(value * 100).toFixed(0)}%`;
+                case 'yield':
+                    return `${(value * 100).toFixed(1)}%`;
+                default:
+                    return value.toFixed(2);
+            }
         }
 
         // Handle map clicks
@@ -717,10 +1116,18 @@
             // Filters
             document.getElementById('filters-title').textContent = 
                 translations.filters || 'Filtros';
+            document.getElementById('heatmap-layers-label').textContent = 
+                `🔥 ${translations.heatmap_layers || 'Capas de Calor'}:`;
             document.getElementById('crop-filter-label').textContent = 
                 `🌾 ${translations.crop_types || 'Tipos de Cultivo'}:`;
             document.getElementById('yield-filter-label').textContent = 
                 `📈 ${translations.yield_level || 'Nivel de Rendimiento'}:`;
+            
+            // Heatmap buttons
+            document.getElementById('temp-heatmap-label').textContent = translations.temperature || 'Temperatura';
+            document.getElementById('ndvi-heatmap-label').textContent = translations.ndvi || 'NDVI';
+            document.getElementById('humidity-heatmap-label').textContent = translations.humidity || 'Humedad';
+            document.getElementById('yield-heatmap-label').textContent = translations.yield || 'Rendimiento';
             
             // Crop labels
             document.getElementById('rice-label').textContent = translations.rice || 'Arroz';
@@ -775,6 +1182,30 @@
             currentDate = parseInt(value);
             updateDateDisplay();
             updateMapMarkers();
+            
+            // Update heatmaps for new date
+            updateHeatmapsForDate();
+            
+            // Check for new alerts with date change
+            setTimeout(checkForAlerts, 1000);
+        }
+
+        // Update heatmaps when date changes
+        function updateHeatmapsForDate() {
+            // Re-generate heatmap data for new date
+            Object.keys(heatmapLayers).forEach(layerName => {
+                if (activeHeatmaps.has(layerName)) {
+                    // Remove current layer
+                    if (heatmapLayers[layerName].layer) {
+                        map.removeLayer(heatmapLayers[layerName].layer);
+                        heatmapLayers[layerName].layer = null;
+                    }
+                    
+                    // Re-add with new data
+                    activeHeatmaps.delete(layerName);
+                    toggleHeatmapLayer(layerName);
+                }
+            });
         }
 
         // Handle crop filter toggle
@@ -889,6 +1320,15 @@
                 });
             });
             
+            // Heatmap layer buttons
+            document.querySelectorAll('.heatmap-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const layer = e.currentTarget.dataset.layer;
+                    toggleHeatmapLayer(layer);
+                    e.currentTarget.classList.toggle('active');
+                });
+            });
+            
             // Yield filter checkboxes
             document.getElementById('yield-high').addEventListener('change', (e) => {
                 toggleYieldFilter('high');
@@ -900,8 +1340,295 @@
                 toggleYieldFilter('low');
             });
             
+            // Year comparison
+            document.getElementById('yearSelect').addEventListener('change', (e) => {
+                currentYear = parseInt(e.target.value);
+                updateMapForYear();
+            });
+            
+            document.getElementById('compareYears').addEventListener('click', toggleComparisonMode);
+            
             console.log('✅ FLORASAT Interactive Map initialized successfully!');
+            
+            // Start intelligent alert monitoring
+            startAlertMonitoring();
         }
+
+        // NEW: Climate Change Analysis Functions
+        function updateMapForYear() {
+            // Simulate different years with climate change effects
+            const yearEffects = {
+                2025: { tempOffset: 1.5, precipOffset: -0.1, extremeFreq: 1.2 },
+                2024: { tempOffset: 1.2, precipOffset: -0.05, extremeFreq: 1.1 },
+                2023: { tempOffset: 1.0, precipOffset: 0, extremeFreq: 1.0 },
+                2022: { tempOffset: 0.8, precipOffset: 0.05, extremeFreq: 0.9 },
+                2021: { tempOffset: 0.6, precipOffset: 0.1, extremeFreq: 0.8 },
+                2020: { tempOffset: 0.4, precipOffset: 0.15, extremeFreq: 0.7 }
+            };
+
+            const effects = yearEffects[currentYear] || yearEffects[2023];
+            
+            // Update phenology data for selected year
+            updatePhenologyForYear(effects);
+            
+            // Update heatmaps
+            if (Object.keys(heatmapLayers).length > 0) {
+                initHeatmapLayers(); // Regenerate with new year effects
+                
+                // Reapply active heatmaps
+                const activeHeatmapNames = Array.from(activeHeatmaps);
+                activeHeatmaps.clear();
+                activeHeatmapNames.forEach(layerName => {
+                    toggleHeatmapLayer(layerName);
+                });
+            }
+            
+            // Update markers
+            updateMapMarkers();
+            
+            // Show climate change alert if significant difference
+            if (currentYear !== 2025) {
+                showClimateChangeInfo(effects);
+            }
+            
+            console.log(`📅 Updated map for year ${currentYear}`, effects);
+        }
+
+        function updatePhenologyForYear(effects) {
+            // Modify existing phenology data based on year effects
+            phenologyData.forEach(event => {
+                // Climate change affects timing and intensity
+                const tempStress = effects.tempOffset > 1.0;
+                const droughtStress = effects.precipOffset < 0;
+                
+                if (tempStress) {
+                    // Earlier flowering due to heat
+                    event.startDay = Math.max(1, event.startDay - effects.tempOffset * 10);
+                    event.peakDay = Math.max(1, event.peakDay - effects.tempOffset * 10);
+                    event.endDay = Math.max(event.peakDay + 10, event.endDay - effects.tempOffset * 5);
+                    
+                    // Reduced amplitude due to stress
+                    event.amplitude *= (1 - effects.tempOffset * 0.2);
+                }
+                
+                if (droughtStress) {
+                    // Reduced yield due to water stress
+                    event.yieldPercent *= (1 + effects.precipOffset);
+                    event.yieldLevel = event.yieldPercent > 70 ? 'high' : 
+                                     event.yieldPercent > 50 ? 'medium' : 'low';
+                }
+                
+                // Update temperature for the year
+                event.temperature = getEstimatedTemp(event.peakDay) + effects.tempOffset;
+            });
+        }
+
+        function toggleComparisonMode() {
+            comparisonMode = !comparisonMode;
+            const button = document.getElementById('compareYears');
+            
+            if (comparisonMode) {
+                button.classList.add('active');
+                showYearComparison();
+            } else {
+                button.classList.remove('active');
+                hideYearComparison();
+            }
+        }
+
+        function showYearComparison() {
+            // Show side-by-side comparison with 2023 (baseline)
+            const currentEffects = {
+                2025: { tempOffset: 1.5, precipOffset: -0.1, extremeFreq: 1.2 },
+                2024: { tempOffset: 1.2, precipOffset: -0.05, extremeFreq: 1.1 },
+                2023: { tempOffset: 1.0, precipOffset: 0, extremeFreq: 1.0 },
+                2022: { tempOffset: 0.8, precipOffset: 0.05, extremeFreq: 0.9 },
+                2021: { tempOffset: 0.6, precipOffset: 0.1, extremeFreq: 0.8 },
+                2020: { tempOffset: 0.4, precipOffset: 0.15, extremeFreq: 0.7 }
+            }[currentYear];
+
+            const baselineEffects = { tempOffset: 1.0, precipOffset: 0, extremeFreq: 1.0 }; // 2023
+            
+            const tempChange = currentEffects.tempOffset - baselineEffects.tempOffset;
+            const precipChange = (currentEffects.precipOffset - baselineEffects.precipOffset) * 100;
+            
+            const changeMessage = `
+                🌡️ Cambio de temperatura: ${tempChange > 0 ? '+' : ''}${tempChange.toFixed(1)}°C vs 2023<br>
+                💧 Cambio de precipitación: ${precipChange > 0 ? '+' : ''}${precipChange.toFixed(1)}% vs 2023<br>
+                ⚡ Eventos extremos: ${(currentEffects.extremeFreq * 100 - 100).toFixed(0)}% más frecuentes
+            `;
+
+            showAlert({
+                type: currentYear >= 2024 ? 'warning' : 'info',
+                icon: '📊',
+                title: `Análisis Climático ${currentYear} vs 2023`,
+                message: changeMessage,
+                action: 'Datos basados en proyecciones climáticas NASA'
+            });
+        }
+
+        function hideYearComparison() {
+            // Clear comparison alerts
+            alertSystem.forEach(alert => {
+                if (alert.data.title.includes('Análisis Climático')) {
+                    dismissAlert(alert.id);
+                }
+            });
+        }
+
+        function showClimateChangeInfo(effects) {
+            let impactLevel = 'info';
+            let impactMessage = '';
+            
+            if (effects.tempOffset > 1.2) {
+                impactLevel = 'warning';
+                impactMessage = 'Impacto climático significativo detectado. ';
+            } else if (effects.tempOffset < 0.8) {
+                impactLevel = 'info';
+                impactMessage = 'Condiciones climáticas más estables en este período. ';
+            }
+            
+            impactMessage += `Temperatura ${effects.tempOffset > 1 ? 'más alta' : 'más baja'} que el promedio histórico.`;
+            
+            showAlert({
+                type: impactLevel,
+                icon: '🌍',
+                title: `Contexto Climático ${currentYear}`,
+                message: impactMessage,
+                action: 'Adaptar estrategias agrícolas según condiciones'
+            });
+        }
+
+        // NEW: Alert System Functions
+        function startAlertMonitoring() {
+            // Check for alerts every 30 seconds
+            alertCheckInterval = setInterval(checkForAlerts, 30000);
+            
+            // Initial alert check
+            setTimeout(checkForAlerts, 5000); // After 5 seconds
+            
+            console.log('🚨 Alert monitoring system started');
+        }
+
+        function checkForAlerts() {
+            const alerts = [];
+            
+            // Check temperature extremes
+            const currentTemp = getEstimatedTemp(currentDate);
+            if (currentTemp > 35) {
+                alerts.push({
+                    type: 'critical',
+                    icon: '🔥',
+                    title: 'ALERTA CRÍTICA: Calor Extremo',
+                    message: `Temperatura de ${currentTemp}°C detectada. Riesgo alto de estrés térmico en cultivos. Se recomienda riego de emergencia.`,
+                    action: 'Activar protocolo de riego de emergencia'
+                });
+            } else if (currentTemp < 5) {
+                alerts.push({
+                    type: 'critical',
+                    icon: '❄️',
+                    title: 'ALERTA CRÍTICA: Helada',
+                    message: `Temperatura de ${currentTemp}°C. Riesgo de heladas. Proteger cultivos sensibles inmediatamente.`,
+                    action: 'Implementar protección antiheladas'
+                });
+            }
+
+            // Check for flowering season with extreme weather
+            const activeFloweringEvents = phenologyData.filter(event => 
+                currentDate >= event.startDay && currentDate <= event.endDay
+            );
+
+            if (activeFloweringEvents.length > 0 && (currentTemp > 32 || currentTemp < 12)) {
+                alerts.push({
+                    type: 'warning',
+                    icon: '🌸',
+                    title: 'ALERTA: Floración en Riesgo',
+                    message: `${activeFloweringEvents.length} eventos de floración activos con temperatura subóptima (${currentTemp}°C). Monitorear desarrollo.`,
+                    action: 'Revisar calendarios de riego y protección'
+                });
+            }
+
+            // Check for low NDVI in agricultural areas
+            if (currentDate > 90 && currentDate < 300) { // Spring/Summer
+                const lowNDVICount = Math.floor(Math.random() * 3); // Simulate detection
+                if (lowNDVICount > 0) {
+                    alerts.push({
+                        type: 'warning',
+                        icon: '🌱',
+                        title: 'ALERTA: Vegetación Baja Detectada',
+                        message: `${lowNDVICount} áreas con NDVI < 0.3 en temporada de crecimiento. Posible estrés hídrico o plagas.`,
+                        action: 'Investigar causas y aplicar tratamientos'
+                    });
+                }
+            }
+
+            // Optimal conditions alert
+            if (currentTemp >= 18 && currentTemp <= 25 && activeFloweringEvents.length > 0) {
+                alerts.push({
+                    type: 'info',
+                    icon: '✅',
+                    title: 'CONDICIONES ÓPTIMAS',
+                    message: `Temperatura ideal ${currentTemp}°C con ${activeFloweringEvents.length} floraciones activas. Momento perfecto para optimización.`,
+                    action: 'Continuar monitoreo regular'
+                });
+            }
+
+            // Display alerts
+            alerts.forEach(alert => showAlert(alert));
+        }
+
+        function showAlert(alertData) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = Date.now() + Math.random();
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertData.type}`;
+            alertDiv.dataset.alertId = alertId;
+            
+            alertDiv.innerHTML = `
+                <button class="alert-close" onclick="dismissAlert('${alertId}')">×</button>
+                <div class="alert-header">
+                    <span class="alert-icon">${alertData.icon}</span>
+                    <span>${alertData.title}</span>
+                </div>
+                <div class="alert-message">
+                    ${alertData.message}
+                    ${alertData.action ? `<br><strong>Acción recomendada:</strong> ${alertData.action}` : ''}
+                </div>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-dismiss after 10 seconds for info alerts, 30 seconds for warnings, never for critical
+            if (alertData.type === 'info') {
+                setTimeout(() => dismissAlert(alertId), 10000);
+            } else if (alertData.type === 'warning') {
+                setTimeout(() => dismissAlert(alertId), 30000);
+            }
+            
+            // Track alert
+            alertSystem.push({ id: alertId, data: alertData, timestamp: Date.now() });
+            
+            console.log(`🚨 Alert shown: ${alertData.title}`);
+        }
+
+        function dismissAlert(alertId) {
+            const alertDiv = document.querySelector(`[data-alert-id="${alertId}"]`);
+            if (alertDiv) {
+                alertDiv.style.animation = 'slideOutAlert 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 300);
+            }
+            
+            // Remove from tracking
+            alertSystem = alertSystem.filter(alert => alert.id !== alertId);
+        }
+
+        // Make dismissAlert globally available
+        window.dismissAlert = dismissAlert;
 
         // Start the application
         document.addEventListener('DOMContentLoaded', init);
