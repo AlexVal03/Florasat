@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from app.api.endpoints import valencia, hls, phenology, weather, i18n
+from app.api.endpoints import valencia, hls, phenology, weather, i18n, flowering_risk
 
 app = FastAPI(
     title='FLORASAT Valencia',
@@ -16,6 +16,7 @@ app.include_router(hls.router, prefix='/api/hls', tags=['hls'])
 app.include_router(phenology.router, prefix='/api/phenology', tags=['phenology'])
 app.include_router(weather.router, prefix='/api/weather', tags=['weather'])
 app.include_router(i18n.router, prefix='/api/i18n', tags=['internationalization'])
+app.include_router(flowering_risk.router, prefix='/api/flowering-risk', tags=['flowering-risk'])
 
 @app.get('/', response_class=HTMLResponse)
 async def root():
