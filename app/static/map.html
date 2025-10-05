@@ -1,0 +1,2336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>� FLORSTAT - Global Flowering Risk Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Timeline Container */
+        .timeline-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .timeline-header {
+            color: white;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .timeline-date {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Timeline Slider */
+        .timeline-slider {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Month Labels */
+        .month-labels {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+
+        /* Year Comparison */
+        .year-comparison {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .year-selector {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+
+        .year-selector option {
+            background: #333;
+            color: white;
+        }
+
+        .compare-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .compare-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .compare-button.active {
+            background: #FF6B35;
+            border-color: #FF6B35;
+        }
+
+        /* Filters Panel */
+        .filters-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            min-width: 250px;
+        }
+
+        .filters-title {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-label {
+            color: white;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .crop-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .crop-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .crop-button.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .crop-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Heatmap Controls */
+        .heatmap-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .heatmap-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .heatmap-button.active {
+            background: #FF6B35;
+            border-color: #FF6B35;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+        }
+
+        .heatmap-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Yield Filter */
+        .yield-filter {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .yield-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 0.8em;
+        }
+
+        .yield-option input[type="checkbox"] {
+            accent-color: #4CAF50;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 150px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            color: white;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8em;
+        }
+
+        .legend-icon {
+            font-size: 1.2em;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            color: white;
+            max-width: 300px;
+            display: none;
+        }
+
+        .info-panel.show {
+            display: block;
+        }
+
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        .info-content {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        /* Risk Legend Styles */
+        .risk-legend-container {
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .risk-legend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .risk-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .risk-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+            color: #34495e;
+        }
+
+        .risk-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .risk-low .risk-color {
+            background: #27ae60; /* Verde */
+        }
+
+        .risk-moderate .risk-color {
+            background: #f1c40f; /* Amarillo */
+        }
+
+        .risk-high .risk-color {
+            background: #e67e22; /* Naranja */
+        }
+
+        .risk-critical .risk-color {
+            background: #e74c3c; /* Rojo */
+        }
+
+        /* Custom bloom date markers */
+        .bloom-date-marker {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+                font-size: 0.9em;
+            }
+
+            .filters-panel {
+                position: fixed;
+                top: 70px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .timeline-container {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+            }
+
+            .legend {
+                left: 10px;
+                bottom: 120px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            z-index: 2000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4CAF50;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Alert System */
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .alert {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid;
+            border-radius: 15px;
+            padding: 15px 20px;
+            color: white;
+            backdrop-filter: blur(10px);
+            animation: slideInAlert 0.5s ease-out;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .alert:hover {
+            transform: scale(1.02);
+        }
+
+        .alert.critical {
+            border-color: #FF4444;
+            background: rgba(255, 68, 68, 0.2);
+        }
+
+        .alert.warning {
+            border-color: #FFA500;
+            background: rgba(255, 165, 0, 0.2);
+        }
+
+        .alert.info {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .alert-icon {
+            font-size: 1.2em;
+        }
+
+        .alert-message {
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .alert-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideInAlert {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slideOutAlert {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span>�</span>
+                <span>FLORSTAT</span>
+                <span style="font-size: 0.7em; opacity: 0.8;">Global Flowering Forecast</span>
+            </div>
+            <div class="controls">
+                <select id="cropSelect" class="btn" style="margin-right: 10px;">
+                    <option value="arroz">🌾 Arroz / Rice</option>
+                    <option value="maiz">🌽 Maíz / Corn</option>
+                    <option value="trigo">🌾 Trigo / Wheat</option>
+                    <option value="girasol">🌻 Girasol / Sunflower</option>
+                    <option value="olivo">🫒 Olivo / Olive</option>
+                    <option value="almendro">🌸 Almendro / Almond</option>
+                </select>
+                <select id="languageSelect" class="btn">
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="en">🇺🇸 English</option>
+                </select>
+                <a href="/" class="btn">📊 Dashboard</a>
+                <button id="resetView" class="btn">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div>Cargando datos fenológicos...</div>
+            </div>
+        </div>
+
+        <!-- Timeline Container -->
+        <div class="timeline-container">
+            <div class="timeline-header">
+                <div>📅 <span id="timeline-title">Navegación Temporal</span></div>
+                <div class="timeline-date" id="current-date">Enero 2025</div>
+                <!-- NEW: Year comparison -->
+                <div class="year-comparison">
+                    <label for="yearSelect" id="year-label">Año:</label>
+                    <select id="yearSelect" class="year-selector">
+                        <option value="2025">2025 (Actual)</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                    </select>
+                    <button id="compareYears" class="compare-button">
+                        🔄 <span id="compare-years-label">Comparar</span>
+                    </button>
+                </div>
+            </div>
+            <div class="timeline-slider">
+                <input type="range" min="1" max="365" value="1" class="slider" id="dateSlider">
+                <div class="month-labels">
+                    <span>Ene</span>
+                    <span>Feb</span>
+                    <span>Mar</span>
+                    <span>Abr</span>
+                    <span>May</span>
+                    <span>Jun</span>
+                    <span>Jul</span>
+                    <span>Ago</span>
+                    <span>Sep</span>
+                    <span>Oct</span>
+                    <span>Nov</span>
+                    <span>Dic</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Legend -->
+        <div class="risk-legend-container">
+            <div class="risk-legend-header">
+                <div>� <span id="risk-legend-title">Pronóstico de Floración</span></div>
+            </div>
+            <div class="risk-legend">
+                <div class="risk-item risk-low">
+                    <div class="risk-color"></div>
+                    <span id="risk-low-label">🟢 Temprano (Feb-Mar)</span>
+                </div>
+                <div class="risk-item risk-moderate">
+                    <div class="risk-color"></div>
+                    <span id="risk-moderate-label">🟡 Normal (Mar-Abr)</span>
+                </div>
+                <div class="risk-item risk-high">
+                    <div class="risk-color"></div>
+                    <span id="risk-high-label">🟠 Tardío (Abr-May)</span>
+                </div>
+                <div class="risk-item risk-critical">
+                    <div class="risk-color"></div>
+                    <span id="risk-critical-label">🔴 Muy Tardío (May+)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Panel -->
+        <div class="filters-panel">
+            <div class="filters-title">🎛️ <span id="filters-title">Filtros</span></div>
+            
+            <!-- NEW: Heatmap Layers -->
+            <div class="filter-group">
+                <label class="filter-label" id="heatmap-layers-label">🔥 Capas de Calor:</label>
+                <div class="heatmap-controls">
+                    <button class="heatmap-button" data-layer="temperature">
+                        🌡️ <span id="temp-heatmap-label">Temperatura</span>
+                    </button>
+                    <button class="heatmap-button" data-layer="ndvi">
+                        🌱 <span id="ndvi-heatmap-label">NDVI</span>
+                    </button>
+                    <button class="heatmap-button" data-layer="humidity">
+                        💧 <span id="humidity-heatmap-label">Humedad</span>
+                    </button>
+                    <button class="heatmap-button" data-layer="yield">
+                        📈 <span id="yield-heatmap-label">Rendimiento</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label" id="crop-filter-label">🌾 Tipos de Cultivo:</label>
+                <div class="crop-filter">
+                    <button class="crop-button active" data-crop="arroz">
+                        🌾 <span id="rice-label">Arroz</span>
+                    </button>
+                    <button class="crop-button active" data-crop="maiz">
+                        🌽 <span id="corn-label">Maíz</span>
+                    </button>
+                    <button class="crop-button active" data-crop="trigo">
+                        🌾 <span id="wheat-label">Trigo</span>
+                    </button>
+                    <button class="crop-button active" data-crop="tomate">
+                        🍅 <span id="tomato-label">Tomate</span>
+                    </button>
+                    <button class="crop-button active" data-crop="naranja">
+                        🍊 <span id="orange-label">Naranja</span>
+                    </button>
+                    <button class="crop-button active" data-crop="oliva">
+                        🫒 <span id="olive-label">Oliva</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label" id="yield-filter-label">📈 Nivel de Rendimiento:</label>
+                <div class="yield-filter">
+                    <label class="yield-option">
+                        <input type="checkbox" id="yield-high" checked>
+                        <span>🟢 <span id="high-yield-label">Alto (>70%)</span></span>
+                    </label>
+                    <label class="yield-option">
+                        <input type="checkbox" id="yield-medium" checked>
+                        <span>🟡 <span id="medium-yield-label">Medio (50-70%)</span></span>
+                    </label>
+                    <label class="yield-option">
+                        <input type="checkbox" id="yield-low" checked>
+                        <span>🔴 <span id="low-yield-label">Bajo (<50%)</span></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <button id="playAnimation" class="btn" style="width: 100%;">
+                    ▶️ <span id="play-animation-label">Reproducir Animación</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title" id="legend-title">🗺️ Leyenda</div>
+            <div class="legend-item">
+                <span class="legend-icon">🌾</span>
+                <span id="flowering-label">Floración Activa</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🟢</span>
+                <span id="high-performance-label">Alto Rendimiento</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🟡</span>
+                <span id="medium-performance-label">Medio Rendimiento</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🔴</span>
+                <span id="low-performance-label">Bajo Rendimiento</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-icon">🌡️</span>
+                <span id="temperature-label">Datos de Temperatura</span>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel" id="infoPanel">
+            <div class="info-title" id="info-title">Información del Área</div>
+            <div class="info-content" id="info-content">
+                Selecciona una zona en el mapa para ver detalles
+            </div>
+        </div>
+
+        <!-- NEW: Alert System -->
+        <div class="alert-container" id="alertContainer"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main Script -->
+    <script>
+        // Global variables
+        let map;
+        let markers = [];
+        let heatmapLayers = {}; // NEW: Store heatmap layers
+        let activeHeatmaps = new Set(); // NEW: Track active heatmaps
+        let currentDate = 1; // Day of year (1-365)
+        let currentLanguage = 'es';
+        let translations = {};
+        let phenologyData = [];
+        let filteredCrops = new Set(['arroz', 'maiz', 'trigo', 'tomate', 'naranja', 'oliva']);
+        let filteredYields = new Set(['high', 'medium', 'low']);
+        let animationInterval;
+        let alertSystem = []; // NEW: Alert tracking
+        let alertCheckInterval; // NEW: Periodic alert checking
+        let currentYear = 2025; // NEW: Current year tracking
+        let comparisonMode = false; // NEW: Comparison mode flag
+
+        // Crop icons mapping
+        const cropIcons = {
+            'arroz': '🌾',
+            'maiz': '🌽', 
+            'trigo': '🌾',
+            'tomate': '🍅',
+            'naranja': '🍊',
+            'oliva': '🫒'
+        };
+
+        // Yield colors
+        const yieldColors = {
+            'high': '#4CAF50',    // Green
+            'medium': '#FFC107',  // Yellow  
+            'low': '#F44336'      // Red
+        };
+
+        // Initialize map
+        function initMap() {
+            // Initialize Leaflet map centered on Valencia
+            map = L.map('map').setView([39.4699, -0.3763], 10);
+
+            // Add OpenStreetMap tiles with high quality
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors | FLORSTAT NASA Space Apps 2025',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Add click handler for info panel
+            map.on('click', handleMapClick);
+            
+            // Initialize heatmap layers
+            initHeatmapLayers();
+        }
+
+        // NEW: Initialize heatmap layers
+        function initHeatmapLayers() {
+            // Generate synthetic heatmap data for demo
+            const valenciaCenter = [39.4699, -0.3763];
+            const radius = 0.3; // Degrees around Valencia
+
+            // Temperature heatmap data
+            const temperatureData = generateHeatmapData(valenciaCenter, radius, 
+                (lat, lng, date) => {
+                    const baseTempSeason = getEstimatedTemp(date);
+                    const coastal = Math.abs(lng + 0.3763) * 50; // Distance from coast
+                    const urban = Math.abs(lat - 39.4699) * 30; // Distance from city
+                    return baseTempSeason + coastal - urban + (Math.random() - 0.5) * 5;
+                }
+            );
+
+            // NDVI heatmap data  
+            const ndviData = generateHeatmapData(valenciaCenter, radius,
+                (lat, lng, date) => {
+                    const seasonalFactor = 0.3 + 0.4 * Math.sin(2 * Math.PI * (date - 80) / 365);
+                    const elevation = (lat - 39.4699) * 0.1; // Higher = more vegetation
+                    const irrigation = Math.abs(lng + 0.3763) < 0.1 ? 0.2 : 0; // Near coast = irrigated
+                    return Math.max(0.1, Math.min(0.9, seasonalFactor + elevation + irrigation + (Math.random() - 0.5) * 0.2));
+                }
+            );
+
+            // Humidity heatmap data
+            const humidityData = generateHeatmapData(valenciaCenter, radius,
+                (lat, lng, date) => {
+                    const coastal = Math.max(0, 0.2 - Math.abs(lng + 0.3763) * 2); // Higher near coast
+                    const seasonal = 0.5 + 0.3 * Math.sin(2 * Math.PI * (date - 365/2) / 365); // Winter = humid
+                    return Math.max(0.3, Math.min(0.9, seasonal + coastal + (Math.random() - 0.5) * 0.2));
+                }
+            );
+
+            // Yield prediction heatmap data
+            const yieldData = generateHeatmapData(valenciaCenter, radius,
+                (lat, lng, date) => {
+                    const ndvi = ndviData.find(point => 
+                        Math.abs(point[0] - lat) < 0.01 && Math.abs(point[1] - lng) < 0.01
+                    )?.[2] || 0.5;
+                    const temp = temperatureData.find(point => 
+                        Math.abs(point[0] - lat) < 0.01 && Math.abs(point[1] - lng) < 0.01
+                    )?.[2] || 20;
+                    
+                    // Combine NDVI and temperature for yield prediction
+                    const tempFactor = temp > 15 && temp < 30 ? 1 : 0.7;
+                    const yieldScore = ndvi * tempFactor;
+                    return Math.max(0.1, Math.min(1.0, yieldScore + (Math.random() - 0.5) * 0.2));
+                }
+            );
+
+            // Store heatmap layers (not added to map yet)
+            heatmapLayers = {
+                temperature: {
+                    data: temperatureData,
+                    layer: null,
+                    gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'},
+                    name: 'Temperatura (°C)'
+                },
+                ndvi: {
+                    data: ndviData,
+                    layer: null,
+                    gradient: {0.1: '#8B4513', 0.3: '#DAA520', 0.5: '#ADFF2F', 0.7: '#32CD32', 1.0: '#006400'},
+                    name: 'NDVI (Índice Vegetación)'
+                },
+                humidity: {
+                    data: humidityData,
+                    layer: null,
+                    gradient: {0.3: '#FFE4B5', 0.5: '#87CEEB', 0.7: '#4169E1', 1.0: '#191970'},
+                    name: 'Humedad (%)'
+                },
+                yield: {
+                    data: yieldData,
+                    layer: null,
+                    gradient: {0.1: '#FF0000', 0.4: '#FF8C00', 0.6: '#FFD700', 0.8: '#ADFF2F', 1.0: '#008000'},
+                    name: 'Predicción Rendimiento'
+                }
+            };
+
+            console.log('🔥 Heatmap layers initialized:', Object.keys(heatmapLayers));
+        }
+
+        // Generate synthetic heatmap data
+        function generateHeatmapData(center, radius, valueFunction) {
+            const data = [];
+            const gridSize = 20; // Grid resolution
+            
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const lat = center[0] + (i / gridSize - 0.5) * radius * 2;
+                    const lng = center[1] + (j / gridSize - 0.5) * radius * 2;
+                    const value = valueFunction(lat, lng, currentDate);
+                    
+                    data.push([lat, lng, value]);
+                }
+            }
+            
+            return data;
+        }
+
+        // Toggle heatmap layer
+        function toggleHeatmapLayer(layerName) {
+            const heatmapInfo = heatmapLayers[layerName];
+            
+            if (!heatmapInfo) return;
+
+            if (activeHeatmaps.has(layerName)) {
+                // Remove layer
+                if (heatmapInfo.layer) {
+                    map.removeLayer(heatmapInfo.layer);
+                    heatmapInfo.layer = null;
+                }
+                activeHeatmaps.delete(layerName);
+            } else {
+                // Add layer
+                if (!heatmapInfo.layer) {
+                    // Create heatmap layer using simple approach (colored circles)
+                    heatmapInfo.layer = L.layerGroup();
+                    
+                    heatmapInfo.data.forEach(point => {
+                        const [lat, lng, value] = point;
+                        const color = getHeatmapColor(value, heatmapInfo.gradient);
+                        
+                        const circle = L.circle([lat, lng], {
+                            radius: 2000, // 2km radius
+                            fillColor: color,
+                            color: color,
+                            weight: 0,
+                            fillOpacity: 0.6
+                        });
+                        
+                        circle.bindTooltip(`${heatmapInfo.name}: ${formatHeatmapValue(layerName, value)}`);
+                        heatmapInfo.layer.addLayer(circle);
+                    });
+                }
+                
+                heatmapInfo.layer.addTo(map);
+                activeHeatmaps.add(layerName);
+            }
+
+            console.log(`🔥 Toggled heatmap: ${layerName}, active layers:`, Array.from(activeHeatmaps));
+        }
+
+        // Get color for heatmap value
+        function getHeatmapColor(value, gradient) {
+            const keys = Object.keys(gradient).map(Number).sort((a, b) => a - b);
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (value >= keys[i] && value <= keys[i + 1]) {
+                    return gradient[keys[i + 1]];
+                }
+            }
+            
+            return gradient[keys[keys.length - 1]];
+        }
+
+        // Format heatmap value for display
+        function formatHeatmapValue(layerName, value) {
+            switch (layerName) {
+                case 'temperature':
+                    return `${(value * 35 + 5).toFixed(1)}°C`; // Scale to realistic temperature
+                case 'ndvi':
+                    return value.toFixed(3);
+                case 'humidity':
+                    return `${(value * 100).toFixed(0)}%`;
+                case 'yield':
+                    return `${(value * 100).toFixed(1)}%`;
+                default:
+                    return value.toFixed(2);
+            }
+        }
+
+        // Handle map clicks
+        function handleMapClick(e) {
+            const lat = e.latlng.lat.toFixed(4);
+            const lng = e.latlng.lng.toFixed(4);
+            
+            const infoPanel = document.getElementById('infoPanel');
+            const infoContent = document.getElementById('info-content');
+            
+            // Simulate getting info for clicked location
+            infoContent.innerHTML = `
+                <strong>📍 Coordenadas:</strong> ${lat}, ${lng}<br>
+                <strong>📅 Fecha:</strong> ${formatDate(currentDate)}<br>
+                <strong>🌾 Cultivos Activos:</strong> ${getActiveCrops(lat, lng)}<br>
+                <strong>🌡️ Temperatura Est.:</strong> ${getEstimatedTemp(currentDate)}°C<br>
+                <strong>💧 Humedad:</strong> ${60 + Math.random() * 20}%<br>
+                <strong>📊 NDVI Promedio:</strong> ${(0.3 + Math.random() * 0.4).toFixed(3)}
+            `;
+            
+            infoPanel.classList.add('show');
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                infoPanel.classList.remove('show');
+            }, 5000);
+        }
+
+        // Get active crops for a location (simulated)
+        function getActiveCrops(lat, lng) {
+            const crops = ['arroz', 'maiz', 'trigo', 'tomate'];
+            const activeCrops = crops.filter(() => Math.random() > 0.6);
+            return activeCrops.length > 0 ? activeCrops.join(', ') : 'Ninguno';
+        }
+
+        // Get estimated temperature for day of year
+        function getEstimatedTemp(dayOfYear) {
+            // Simulate Valencia temperature curve
+            const amplitude = 12; // Temperature variation
+            const baseline = 18;  // Average temperature
+            const temp = baseline + amplitude * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365);
+            return Math.round(temp);
+        }
+
+        // Format day of year to readable date
+        function formatDate(dayOfYear) {
+            const date = new Date(2025, 0, dayOfYear);
+            const months = currentLanguage === 'es' ? 
+                ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] :
+                ['January', 'February', 'March', 'April', 'May', 'June',
+                 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            return `${date.getDate()} ${months[date.getMonth()]} 2025`;
+        }
+
+        // Load phenology data
+        async function loadPhenologyData() {
+            try {
+                // Simulate loading multiple regions with different crops
+                const regions = [
+                    {lat: 39.4699, lng: -0.3763, crop: 'arroz', yield: 'high'},
+                    {lat: 39.5699, lng: -0.2763, crop: 'maiz', yield: 'medium'},
+                    {lat: 39.3699, lng: -0.4763, crop: 'trigo', yield: 'high'},
+                    {lat: 39.6699, lng: -0.1763, crop: 'tomate', yield: 'low'},
+                    {lat: 39.2699, lng: -0.5763, crop: 'naranja', yield: 'medium'},
+                    {lat: 39.7699, lng: -0.0763, crop: 'oliva', yield: 'high'},
+                ];
+
+                // Generate synthetic phenology events
+                phenologyData = [];
+                regions.forEach((region, index) => {
+                    // Generate multiple flowering periods for each region
+                    const numEvents = 1 + Math.floor(Math.random() * 3);
+                    
+                    for (let i = 0; i < numEvents; i++) {
+                        const startDay = 50 + Math.random() * 200; // Random start between Feb-Aug
+                        const duration = 30 + Math.random() * 60;  // 30-90 day duration
+                        
+                        phenologyData.push({
+                            id: `${index}_${i}`,
+                            lat: region.lat + (Math.random() - 0.5) * 0.1,
+                            lng: region.lng + (Math.random() - 0.5) * 0.1,
+                            crop: region.crop,
+                            yieldLevel: region.yield,
+                            startDay: Math.floor(startDay),
+                            endDay: Math.floor(startDay + duration),
+                            peakDay: Math.floor(startDay + duration/2),
+                            amplitude: 0.2 + Math.random() * 0.4,
+                            temperature: getEstimatedTemp(startDay + duration/2),
+                            yieldPercent: region.yield === 'high' ? 70 + Math.random() * 25 :
+                                        region.yield === 'medium' ? 50 + Math.random() * 20 :
+                                        20 + Math.random() * 30
+                        });
+                    }
+                });
+
+                console.log('📊 Phenology data loaded:', phenologyData.length, 'events');
+            } catch (error) {
+                console.error('Error loading phenology data:', error);
+            }
+        }
+
+        // Update map markers based on current date and filters
+        function updateMapMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Filter events for current date
+            const activeEvents = phenologyData.filter(event => 
+                currentDate >= event.startDay && 
+                currentDate <= event.endDay &&
+                filteredCrops.has(event.crop) &&
+                filteredYields.has(event.yieldLevel)
+            );
+
+            // Add markers for active events
+            activeEvents.forEach(event => {
+                const icon = L.divIcon({
+                    html: `
+                        <div style="
+                            background: ${yieldColors[event.yieldLevel]};
+                            border: 2px solid white;
+                            border-radius: 50%;
+                            width: 30px;
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 16px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">${cropIcons[event.crop]}</div>
+                    `,
+                    className: 'custom-crop-marker',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                const marker = L.marker([event.lat, event.lng], { icon }).addTo(map);
+                
+                // Add popup with event details
+                marker.bindPopup(`
+                    <div style="text-align: center; min-width: 200px;">
+                        <h4>${cropIcons[event.crop]} ${event.crop.charAt(0).toUpperCase() + event.crop.slice(1)}</h4>
+                        <p><strong>📅 Período:</strong> ${formatDate(event.startDay)} - ${formatDate(event.endDay)}</p>
+                        <p><strong>🌡️ Temperatura:</strong> ${event.temperature}°C</p>
+                        <p><strong>📈 Rendimiento:</strong> ${event.yieldPercent.toFixed(1)}% 
+                           <span style="color: ${yieldColors[event.yieldLevel]};">●</span></p>
+                        <p><strong>📊 Amplitud NDVI:</strong> ${event.amplitude.toFixed(3)}</p>
+                        <small>Pico esperado: ${formatDate(event.peakDay)}</small>
+                    </div>
+                `);
+
+                markers.push(marker);
+            });
+
+            console.log(`📍 Showing ${activeEvents.length} active events for day ${currentDate}`);
+        }
+
+        // Load translations
+        async function loadTranslations(language = 'es') {
+            try {
+                console.log(`📝 Fetching translations for language: ${language}`);
+                const response = await fetch(`/api/i18n/translations?language=${language}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    translations = data.translations;
+                    currentLanguage = language;
+                    console.log('✅ Translations loaded successfully:', Object.keys(translations).length, 'keys');
+                    updateUITexts();
+                } else {
+                    throw new Error(data.message || 'Failed to load translations');
+                }
+            } catch (error) {
+                console.error('❌ Error loading translations:', error);
+                // Set fallback translations
+                translations = {
+                    temporal_navigation: 'Navegación Temporal',
+                    filters: 'Filtros',
+                    heatmap_layers: 'Capas de Calor',
+                    crop_types: 'Tipos de Cultivo',
+                    yield_level: 'Nivel de Rendimiento',
+                    temperature: 'Temperatura',
+                    ndvi: 'NDVI',
+                    humidity: 'Humedad',
+                    high: 'Alto',
+                    medium: 'Medio',
+                    low: 'Bajo'
+                };
+                currentLanguage = language;
+                console.log('📝 Using fallback translations');
+                updateUITexts();
+                throw error; // Re-throw to handle in init()
+            }
+        }
+
+        // Update UI texts with current language
+        function updateUITexts() {
+            try {
+                // Timeline
+                const timelineTitle = document.getElementById('timeline-title');
+                if (timelineTitle) {
+                    timelineTitle.textContent = translations.temporal_navigation || 'Navegación Temporal';
+                }
+                
+                // Filters
+                const filtersTitle = document.getElementById('filters-title');
+                if (filtersTitle) {
+                    filtersTitle.textContent = translations.filters || 'Filtros';
+                }
+                
+                const heatmapLabel = document.getElementById('heatmap-layers-label');
+                if (heatmapLabel) {
+                    heatmapLabel.textContent = `🔥 ${translations.heatmap_layers || 'Capas de Calor'}:`;
+                }
+                
+                const cropLabel = document.getElementById('crop-filter-label');
+                if (cropLabel) {
+                    cropLabel.textContent = `🌾 ${translations.crop_types || 'Tipos de Cultivo'}:`;
+                }
+                
+                const yieldLabel = document.getElementById('yield-filter-label');
+                if (yieldLabel) {
+                    yieldLabel.textContent = `📈 ${translations.yield_level || 'Nivel de Rendimiento'}:`;
+                }
+                
+                // Heatmap buttons
+                const tempLabel = document.getElementById('temp-heatmap-label');
+                if (tempLabel) {
+                    tempLabel.textContent = translations.temperature || 'Temperatura';
+                }
+                
+                const ndviLabel = document.getElementById('ndvi-heatmap-label');
+                if (ndviLabel) {
+                    ndviLabel.textContent = translations.ndvi || 'NDVI';
+                }
+                
+                const humidityLabel = document.getElementById('humidity-heatmap-label');
+                if (humidityLabel) {
+                    humidityLabel.textContent = translations.humidity || 'Humedad';
+                }
+                
+                console.log('🎨 UI texts updated for language:', currentLanguage);
+            } catch (error) {
+                console.error('❌ Error updating UI texts:', error);
+            }
+        }
+            document.getElementById('yield-heatmap-label').textContent = translations.yield || 'Rendimiento';
+            
+            // Crop labels
+            document.getElementById('rice-label').textContent = translations.rice || 'Arroz';
+            document.getElementById('corn-label').textContent = translations.corn || 'Maíz';
+            document.getElementById('wheat-label').textContent = translations.wheat || 'Trigo';
+            document.getElementById('tomato-label').textContent = translations.tomato || 'Tomate';
+            document.getElementById('orange-label').textContent = translations.orange || 'Naranja';
+            document.getElementById('olive-label').textContent = translations.olive || 'Oliva';
+            
+            // Yield labels  
+            document.getElementById('high-yield-label').textContent = 
+                translations.high_yield || 'Alto (>70%)';
+            document.getElementById('medium-yield-label').textContent = 
+                translations.medium_yield || 'Medio (50-70%)';
+            document.getElementById('low-yield-label').textContent = 
+                translations.low_yield || 'Bajo (<50%)';
+            
+            // Animation button
+            document.getElementById('play-animation-label').textContent = 
+                translations.play_animation || 'Reproducir Animación';
+            
+            // Legend
+            document.getElementById('legend-title').textContent = 
+                `🗺️ ${translations.legend || 'Leyenda'}`;
+            document.getElementById('flowering-label').textContent = 
+                translations.active_flowering || 'Floración Activa';
+            document.getElementById('high-performance-label').textContent = 
+                translations.high_performance || 'Alto Rendimiento';
+            document.getElementById('medium-performance-label').textContent = 
+                translations.medium_performance || 'Medio Rendimiento';
+            document.getElementById('low-performance-label').textContent = 
+                translations.low_performance || 'Bajo Rendimiento';
+            document.getElementById('temperature-label').textContent = 
+                translations.temperature_data || 'Datos de Temperatura';
+            
+            // Info panel
+            document.getElementById('info-title').textContent = 
+                translations.area_information || 'Información del Área';
+            
+            // Update current date display
+            updateDateDisplay();
+        }
+
+        // Update date display
+        function updateDateDisplay() {
+            const dateElement = document.getElementById('current-date');
+            dateElement.textContent = formatDate(currentDate);
+        }
+
+        // Handle timeline slider change
+        function handleTimelineChange(value) {
+            currentDate = parseInt(value);
+            updateDateDisplay();
+            updateMapMarkers();
+            
+            // Update heatmaps for new date
+            updateHeatmapsForDate();
+            
+            // Check for new alerts with date change
+            setTimeout(checkForAlerts, 1000);
+        }
+
+        // Update heatmaps when date changes
+        function updateHeatmapsForDate() {
+            // Re-generate heatmap data for new date
+            Object.keys(heatmapLayers).forEach(layerName => {
+                if (activeHeatmaps.has(layerName)) {
+                    // Remove current layer
+                    if (heatmapLayers[layerName].layer) {
+                        map.removeLayer(heatmapLayers[layerName].layer);
+                        heatmapLayers[layerName].layer = null;
+                    }
+                    
+                    // Re-add with new data
+                    activeHeatmaps.delete(layerName);
+                    toggleHeatmapLayer(layerName);
+                }
+            });
+        }
+
+        // Handle crop filter toggle
+        function toggleCropFilter(crop) {
+            if (filteredCrops.has(crop)) {
+                filteredCrops.delete(crop);
+            } else {
+                filteredCrops.add(crop);
+            }
+            updateMapMarkers();
+        }
+
+        // Handle yield filter toggle
+        function toggleYieldFilter(yieldLevel) {
+            if (filteredYields.has(yieldLevel)) {
+                filteredYields.delete(yieldLevel);
+            } else {
+                filteredYields.add(yieldLevel);
+            }
+            updateMapMarkers();
+        }
+
+        // Play animation
+        function playAnimation() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+                document.getElementById('play-animation-label').textContent = 
+                    translations.play_animation || 'Reproducir Animación';
+                return;
+            }
+
+            document.getElementById('play-animation-label').textContent = 
+                translations.stop_animation || 'Parar Animación';
+            
+            let day = 1;
+            animationInterval = setInterval(() => {
+                currentDate = day;
+                document.getElementById('dateSlider').value = day;
+                updateDateDisplay();
+                updateMapMarkers();
+                
+                day += 5; // Advance 5 days each step
+                if (day > 365) {
+                    clearInterval(animationInterval);
+                    animationInterval = null;
+                    document.getElementById('play-animation-label').textContent = 
+                        translations.play_animation || 'Reproducir Animación';
+                }
+            }, 200); // 200ms between frames
+        }
+
+        // Reset view
+        function resetView() {
+            map.setView([39.4699, -0.3763], 8);
+            currentDate = 1;
+            document.getElementById('dateSlider').value = 1;
+            updateDateDisplay();
+            updateMapMarkers();
+            
+            // Reset filters
+            filteredCrops = new Set(['arroz', 'maiz', 'trigo', 'tomate', 'naranja', 'oliva']);
+            filteredYields = new Set(['high', 'medium', 'low']);
+            
+            // Update filter UI
+            document.querySelectorAll('.crop-button').forEach(btn => btn.classList.add('active'));
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        // Hide loading
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Crop and Risk Management Functions
+        let currentCrop = 'arroz'; // Default crop
+        let riskLayer = null;
+        let choroplethLayer = null;
+        let currentZoomLevel = 1;
+
+        // GeoJSON data for Valencia region only (simplified)
+        const valenciaRegion = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Valencia",
+                        "bloomDate": "15.03",
+                        "riskLevel": "moderate",
+                        "temperature": 22,
+                        "ndvi": 0.65
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-1.2, 40.1], [-1.2, 38.8], [0.8, 38.8], [0.8, 40.1], [-1.2, 40.1]]]
+                    }
+                }
+            ]
+        // GeoJSON data for Valencia region only (simplified)
+        const valenciaRegion = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Valencia",
+                        "bloomDate": "15.03",
+                        "riskLevel": "moderate",
+                        "temperature": 22,
+                        "ndvi": 0.65
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-1.2, 40.1], [-1.2, 38.8], [0.8, 38.8], [0.8, 40.1], [-1.2, 40.1]]]
+                    }
+                }
+            ]
+        };
+
+        // Color schemes for different flowering stages
+        const floweringColorSchemes = {
+            'cherry_blossom': {
+                'early': '#FFE5F1',    // Light pink
+                'normal': '#FFB3D9',   // Medium pink  
+                'late': '#FF80CC',     // Dark pink
+                'very_late': '#FF4DC6' // Deep pink
+            },
+            'crop_risk': {
+                'low': '#E8F5E8',      // Light green
+                'moderate': '#FFF2CC', // Light yellow
+                'high': '#FFE5CC',     // Light orange
+                'critical': '#FFCCCC'  // Light red
+            }
+        };
+
+        // Handle crop selection change
+        function handleCropChange(selectedCrop) {
+            currentCrop = selectedCrop;
+            console.log(`🌾 Crop changed to: ${selectedCrop}`);
+            
+            // Update risk map based on selected crop
+            updateRiskMap(selectedCrop);
+            
+            // Update info panel
+            updateCropInfo(selectedCrop);
+        }
+
+        // Generate risk data based on crop type and current conditions
+        function generateRiskData(crop) {
+            const crops = {
+                'arroz': {
+                    name: 'Arroz/Rice',
+                    optimalTemp: [20, 30],
+                    riskFactors: ['water_stress', 'temperature', 'humidity'],
+                    currentRisk: 'moderate', // 25-50%
+                    season: 'Spring-Summer',
+                    icon: '🌾'
+                },
+                'maiz': {
+                    name: 'Maíz/Corn', 
+                    optimalTemp: [15, 25],
+                    riskFactors: ['drought', 'temperature', 'wind'],
+                    currentRisk: 'low', // 0-25%
+                    season: 'Spring',
+                    icon: '🌽'
+                },
+                'trigo': {
+                    name: 'Trigo/Wheat',
+                    optimalTemp: [10, 20],
+                    riskFactors: ['frost', 'rainfall', 'temperature'],
+                    currentRisk: 'high', // 50-75%
+                    season: 'Early Spring',
+                    icon: '🌾'
+                },
+                'girasol': {
+                    name: 'Girasol/Sunflower',
+                    optimalTemp: [18, 25],
+                    riskFactors: ['wind', 'temperature', 'soil_moisture'],
+                    currentRisk: 'moderate', // 25-50%
+                    season: 'Late Spring',
+                    icon: '🌻'
+                },
+                'olivo': {
+                    name: 'Olivo/Olive',
+                    optimalTemp: [15, 22],
+                    riskFactors: ['frost', 'humidity', 'temperature'],
+                    currentRisk: 'low', // 0-25%
+                    season: 'Spring',
+                    icon: '🫒'
+                },
+                'almendro': {
+                    name: 'Almendro/Almond',
+                    optimalTemp: [12, 18],
+                    riskFactors: ['frost', 'wind', 'pollination'],
+                    currentRisk: 'critical', // 75-100%
+                    season: 'Early Spring',
+                    icon: '🌸'
+                }
+            };
+
+            return crops[crop] || crops['arroz'];
+        }
+
+        // Update risk map visualization with choropleth
+        function updateRiskMap(crop) {
+            // Remove existing layers
+            if (riskLayer) {
+                map.removeLayer(riskLayer);
+            }
+            if (choroplethLayer) {
+                map.removeLayer(choroplethLayer);
+            }
+
+            const cropData = generateRiskData(crop);
+            
+            // Update region data based on selected crop
+            const updatedRegions = updateRegionDataForCrop(valenciaRegion, crop);
+            
+            // Create choropleth layer
+            choroplethLayer = L.geoJSON(updatedRegions, {
+                style: function(feature) {
+                    return {
+                        fillColor: getBloomColor(feature.properties.riskLevel, feature.properties.bloomDate),
+                        weight: 2,
+                        opacity: 0.8,
+                        color: '#2c3e50',
+                        fillOpacity: 0.7
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    // Add date label
+                    const center = layer.getBounds().getCenter();
+                    const dateLabel = L.marker(center, {
+                        icon: L.divIcon({
+                            html: `
+                                <div style="
+                                    background: rgba(255,255,255,0.95);
+                                    border: 2px solid #2c3e50;
+                                    border-radius: 8px;
+                                    padding: 6px 10px;
+                                    font-weight: bold;
+                                    font-size: 14px;
+                                    text-align: center;
+                                    color: #2c3e50;
+                                    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                                    white-space: nowrap;
+                                ">
+                                    ${feature.properties.bloomDate}
+                                </div>
+                            `,
+                            className: 'bloom-date-choropleth',
+                            iconSize: [60, 30],
+                            iconAnchor: [30, 15]
+                        })
+                    });
+
+                    // Add to layer group
+                    if (!riskLayer) {
+                        riskLayer = L.layerGroup();
+                    }
+                    riskLayer.addLayer(dateLabel);
+
+                    // Popup content
+                    const popupContent = `
+                        <div style="text-align: center; min-width: 220px;">
+                            <h3 style="margin: 0 0 15px 0; color: #2c3e50;">
+                                ${cropData.icon} ${cropData.name}
+                            </h3>
+                            <div style="font-size: 1.2em; font-weight: bold; margin: 10px 0;">
+                                🌍 ${feature.properties.name}
+                            </div>
+                            <div style="
+                                background: ${getBloomColor(feature.properties.riskLevel, feature.properties.bloomDate)}; 
+                                color: #2c3e50; 
+                                padding: 12px; 
+                                border-radius: 8px; 
+                                margin: 15px 0;
+                                font-weight: bold;
+                                font-size: 1.1em;
+                                border: 2px solid #2c3e50;
+                            ">
+                                🌸 Bloom Forecast: ${feature.properties.bloomDate}
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+                                <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 5px;">
+                                    <strong>🌡️ Temp</strong><br>
+                                    ${feature.properties.temperature}°C
+                                </div>
+                                <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 5px;">
+                                    <strong>🌱 NDVI</strong><br>
+                                    ${feature.properties.ndvi}
+                                </div>
+                            </div>
+                            <div style="margin: 10px 0; padding: 8px; background: #e9ecef; border-radius: 5px;">
+                                <strong>📊 Risk Level:</strong> 
+                                <span style="font-weight: bold; text-transform: uppercase;">
+                                    ${feature.properties.riskLevel}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.9em; margin-top: 15px; color: #6c757d;">
+                                <strong>Optimal Range:</strong> ${cropData.optimalTemp[0]}°C - ${cropData.optimalTemp[1]}°C
+                            </div>
+                        </div>
+                    `;
+
+                    layer.bindPopup(popupContent);
+                    
+                    // Hover effects
+                    layer.on({
+                        mouseover: function(e) {
+                            e.target.setStyle({
+                                weight: 4,
+                                opacity: 1,
+                                fillOpacity: 0.9
+                            });
+                        },
+                        mouseout: function(e) {
+                            e.target.setStyle({
+                                weight: 2,
+                                opacity: 0.8,
+                                fillOpacity: 0.7
+                            });
+                        }
+                    });
+                }
+            }).addTo(map);
+
+            // Add date labels
+            if (riskLayer) {
+                riskLayer.addTo(map);
+            }
+
+            console.log(`🌸 Choropleth flowering forecast updated for ${crop} - showing ${updatedRegions.features.length} regions`);
+        }
+            
+            // Create multiple regions with flowering forecast data
+            const regions = [
+                // España - Valencia
+                {
+                    name: 'Valencia, Spain',
+                    coords: [39.4699, -0.3763],
+                    radius: 25000,
+                    date: '15.03',
+                    risk: 'moderate',
+                    temp: 22
+                },
+                // Francia - Provence
+                {
+                    name: 'Provence, France', 
+                    coords: [43.9493, 5.9281],
+                    radius: 30000,
+                    date: '28.02',
+                    risk: 'low',
+                    temp: 18
+                },
+                // Italia - Toscana
+                {
+                    name: 'Tuscany, Italy',
+                    coords: [43.7711, 11.2486],
+                    radius: 35000,
+                    date: '05.03',
+                    risk: 'high',
+                    temp: 25
+                },
+                // Grecia - Tesalónica
+                {
+                    name: 'Thessaloniki, Greece',
+                    coords: [40.6401, 22.9444],
+                    radius: 20000,
+                    date: '12.04',
+                    risk: 'critical',
+                    temp: 28
+                },
+                // Portugal - Lisboa
+                {
+                    name: 'Lisbon, Portugal',
+                    coords: [38.7223, -9.1393],
+                    radius: 25000,
+                    date: '20.02',
+                    risk: 'low',
+                    temp: 16
+                },
+                // Marruecos - Rabat
+                {
+                    name: 'Rabat, Morocco',
+                    coords: [34.0209, -6.8416],
+                    radius: 30000,
+                    date: '10.02',
+                    risk: 'moderate',
+                    temp: 20
+                }
+            ];
+
+            const riskColors = {
+                'low': '#27ae60',      // Verde
+                'moderate': '#f1c40f', // Amarillo  
+                'high': '#e67e22',     // Naranja
+                'critical': '#e74c3c'  // Rojo
+            };
+
+            // Create risk layers for each region
+            riskLayer = L.layerGroup();
+
+            regions.forEach(region => {
+                const color = riskColors[region.risk];
+                
+                // Create colored region circle
+                const circle = L.circle(region.coords, {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.5,
+                    radius: region.radius,
+                    weight: 3
+                });
+
+                // Create custom marker for date display
+                const dateIcon = L.divIcon({
+                    html: `
+                        <div style="
+                            background: rgba(255,255,255,0.9);
+                            border: 2px solid ${color};
+                            border-radius: 8px;
+                            padding: 4px 8px;
+                            font-weight: bold;
+                            font-size: 12px;
+                            text-align: center;
+                            color: #2c3e50;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">
+                            ${region.date}
+                        </div>
+                    `,
+                    className: 'bloom-date-marker',
+                    iconSize: [50, 25],
+                    iconAnchor: [25, 12]
+                });
+
+                const dateMarker = L.marker(region.coords, { icon: dateIcon });
+
+                // Add popup with detailed information
+                const popupContent = `
+                    <div style="text-align: center; min-width: 200px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">
+                            🌾 ${cropData.name}
+                        </h3>
+                        <div style="font-size: 1.1em; font-weight: bold; margin: 8px 0;">
+                            📍 ${region.name}
+                        </div>
+                        <div style="
+                            background: ${color}; 
+                            color: white; 
+                            padding: 8px; 
+                            border-radius: 5px; 
+                            margin: 10px 0;
+                            font-weight: bold;
+                        ">
+                            🌸 Predicted Bloom: ${region.date}
+                        </div>
+                        <div style="margin: 8px 0;">
+                            <strong>🌡️ Temperature:</strong> ${region.temp}°C
+                        </div>
+                        <div style="margin: 8px 0;">
+                            <strong>⚠️ Risk Level:</strong> 
+                            <span style="color: ${color}; font-weight: bold;">
+                                ${region.risk.toUpperCase()}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.9em; margin-top: 10px; color: #7f8c8d;">
+                            <strong>Optimal Range:</strong> ${cropData.optimalTemp[0]}°C - ${cropData.optimalTemp[1]}°C
+                        </div>
+                    </div>
+                `;
+
+                circle.bindPopup(popupContent);
+                dateMarker.bindPopup(popupContent);
+
+                riskLayer.addLayer(circle);
+                riskLayer.addLayer(dateMarker);
+            });
+
+            // Add layer group to map
+            riskLayer.addTo(map);
+
+            console.log(`� Flowering forecast map updated for ${crop} - showing ${regions.length} regions`);
+        }
+
+        // Update crop information in info panel
+        function updateCropInfo(crop) {
+            const cropData = generateRiskData(crop);
+            const infoPanel = document.querySelector('.info-content');
+            
+            if (infoPanel) {
+                infoPanel.innerHTML = `
+                    <h3>🌾 ${cropData.name}</h3>
+                    <div style="margin: 15px 0;">
+                        <strong>🎯 Riesgo Actual:</strong> 
+                        <span style="color: ${getRiskColor(cropData.currentRisk)}; font-weight: bold;">
+                            ${cropData.currentRisk.toUpperCase()}
+                        </span>
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <strong>🌡️ Temperatura Óptima:</strong><br>
+                        ${cropData.optimalTemp[0]}°C - ${cropData.optimalTemp[1]}°C
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <strong>⚠️ Factores de Riesgo:</strong><br>
+                        ${cropData.riskFactors.map(factor => `• ${factor.replace('_', ' ')}`).join('<br>')}
+                    </div>
+                `;
+            }
+        }
+
+        // Get risk color
+        function getRiskColor(riskLevel) {
+            const colors = {
+                'low': '#27ae60',
+                'moderate': '#f1c40f', 
+                'high': '#e67e22',
+                'critical': '#e74c3c'
+            };
+            return colors[riskLevel] || '#95a5a6';
+        }
+
+        // Initialize everything
+        async function init() {
+            console.log('🚀 Initializing FLORSTAT Valencia Flowering Forecast Map...');
+            
+            try {
+                // Initialize map first (this should always work)
+                initMap();
+                console.log('✅ Map initialized');
+                
+                // Set simple fallback translations (skip API calls for now)
+                translations = {
+                    temporal_navigation: 'Navegación Temporal',
+                    filters: 'Filtros',
+                    temperature: 'Temperatura',
+                    ndvi: 'NDVI',
+                    humidity: 'Humedad'
+                };
+                console.log('✅ Translations set');
+                
+                // Create simple Valencia phenology data
+                phenologyData = [{
+                    id: 'valencia_1',
+                    lat: 39.4699,
+                    lng: -0.3763,
+                    crop: 'arroz',
+                    yieldLevel: 'high',
+                    startDay: 100,
+                    endDay: 150,
+                    peakDay: 125
+                }];
+                console.log('✅ Valencia phenology data created');
+                
+                // Initialize risk map with default crop (Valencia only) 
+                console.log('🌸 Initializing Valencia choropleth map...');
+                updateRiskMap(currentCrop);
+                updateCropInfo(currentCrop);
+                
+                console.log('✅ FLORSTAT Valencia map fully initialized!');
+                
+            } catch (error) {
+                console.error('❌ Critical error during initialization:', error);
+            } finally {
+                // Always hide loading screen
+                console.log('🎯 Hiding loading screen...');
+                hideLoading();
+            }
+            
+            // Setup event listeners
+            document.getElementById('dateSlider').addEventListener('input', (e) => {
+                handleTimelineChange(e.target.value);
+            });
+            
+            document.getElementById('languageSelect').addEventListener('change', (e) => {
+                loadTranslations(e.target.value);
+            });
+            
+            document.getElementById('cropSelect').addEventListener('change', (e) => {
+                handleCropChange(e.target.value);
+            });
+            
+            document.getElementById('resetView').addEventListener('click', resetView);
+            document.getElementById('playAnimation').addEventListener('click', playAnimation);
+            
+            // Crop filter buttons
+            document.querySelectorAll('.crop-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const crop = e.currentTarget.dataset.crop;
+                    toggleCropFilter(crop);
+                    e.currentTarget.classList.toggle('active');
+                });
+            });
+            
+            // Heatmap layer buttons
+            document.querySelectorAll('.heatmap-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const layer = e.currentTarget.dataset.layer;
+                    toggleHeatmapLayer(layer);
+                    e.currentTarget.classList.toggle('active');
+                });
+            });
+            
+            // Yield filter checkboxes
+            document.getElementById('yield-high').addEventListener('change', (e) => {
+                toggleYieldFilter('high');
+            });
+            document.getElementById('yield-medium').addEventListener('change', (e) => {
+                toggleYieldFilter('medium');
+            });
+            document.getElementById('yield-low').addEventListener('change', (e) => {
+                toggleYieldFilter('low');
+            });
+            
+            // Year comparison
+            document.getElementById('yearSelect').addEventListener('change', (e) => {
+                currentYear = parseInt(e.target.value);
+                updateMapForYear();
+            });
+            
+            document.getElementById('compareYears').addEventListener('click', toggleComparisonMode);
+            
+            console.log('✅ FLORSTAT Global Flowering Forecast Map initialized successfully!');
+            
+            // Start intelligent alert monitoring
+            startAlertMonitoring();
+        }
+
+        // NEW: Climate Change Analysis Functions
+        function updateMapForYear() {
+            // Simulate different years with climate change effects
+            const yearEffects = {
+                2025: { tempOffset: 1.5, precipOffset: -0.1, extremeFreq: 1.2 },
+                2024: { tempOffset: 1.2, precipOffset: -0.05, extremeFreq: 1.1 },
+                2023: { tempOffset: 1.0, precipOffset: 0, extremeFreq: 1.0 },
+                2022: { tempOffset: 0.8, precipOffset: 0.05, extremeFreq: 0.9 },
+                2021: { tempOffset: 0.6, precipOffset: 0.1, extremeFreq: 0.8 },
+                2020: { tempOffset: 0.4, precipOffset: 0.15, extremeFreq: 0.7 }
+            };
+
+            const effects = yearEffects[currentYear] || yearEffects[2023];
+            
+            // Update phenology data for selected year
+            updatePhenologyForYear(effects);
+            
+            // Update heatmaps
+            if (Object.keys(heatmapLayers).length > 0) {
+                initHeatmapLayers(); // Regenerate with new year effects
+                
+                // Reapply active heatmaps
+                const activeHeatmapNames = Array.from(activeHeatmaps);
+                activeHeatmaps.clear();
+                activeHeatmapNames.forEach(layerName => {
+                    toggleHeatmapLayer(layerName);
+                });
+            }
+            
+            // Update markers
+            updateMapMarkers();
+            
+            // Show climate change alert if significant difference
+            if (currentYear !== 2025) {
+                showClimateChangeInfo(effects);
+            }
+            
+            console.log(`📅 Updated map for year ${currentYear}`, effects);
+        }
+
+        function updatePhenologyForYear(effects) {
+            // Modify existing phenology data based on year effects
+            phenologyData.forEach(event => {
+                // Climate change affects timing and intensity
+                const tempStress = effects.tempOffset > 1.0;
+                const droughtStress = effects.precipOffset < 0;
+                
+                if (tempStress) {
+                    // Earlier flowering due to heat
+                    event.startDay = Math.max(1, event.startDay - effects.tempOffset * 10);
+                    event.peakDay = Math.max(1, event.peakDay - effects.tempOffset * 10);
+                    event.endDay = Math.max(event.peakDay + 10, event.endDay - effects.tempOffset * 5);
+                    
+                    // Reduced amplitude due to stress
+                    event.amplitude *= (1 - effects.tempOffset * 0.2);
+                }
+                
+                if (droughtStress) {
+                    // Reduced yield due to water stress
+                    event.yieldPercent *= (1 + effects.precipOffset);
+                    event.yieldLevel = event.yieldPercent > 70 ? 'high' : 
+                                     event.yieldPercent > 50 ? 'medium' : 'low';
+                }
+                
+                // Update temperature for the year
+                event.temperature = getEstimatedTemp(event.peakDay) + effects.tempOffset;
+            });
+        }
+
+        function toggleComparisonMode() {
+            comparisonMode = !comparisonMode;
+            const button = document.getElementById('compareYears');
+            
+            if (comparisonMode) {
+                button.classList.add('active');
+                showYearComparison();
+            } else {
+                button.classList.remove('active');
+                hideYearComparison();
+            }
+        }
+
+        function showYearComparison() {
+            // Show side-by-side comparison with 2023 (baseline)
+            const currentEffects = {
+                2025: { tempOffset: 1.5, precipOffset: -0.1, extremeFreq: 1.2 },
+                2024: { tempOffset: 1.2, precipOffset: -0.05, extremeFreq: 1.1 },
+                2023: { tempOffset: 1.0, precipOffset: 0, extremeFreq: 1.0 },
+                2022: { tempOffset: 0.8, precipOffset: 0.05, extremeFreq: 0.9 },
+                2021: { tempOffset: 0.6, precipOffset: 0.1, extremeFreq: 0.8 },
+                2020: { tempOffset: 0.4, precipOffset: 0.15, extremeFreq: 0.7 }
+            }[currentYear];
+
+            const baselineEffects = { tempOffset: 1.0, precipOffset: 0, extremeFreq: 1.0 }; // 2023
+            
+            const tempChange = currentEffects.tempOffset - baselineEffects.tempOffset;
+            const precipChange = (currentEffects.precipOffset - baselineEffects.precipOffset) * 100;
+            
+            const changeMessage = `
+                🌡️ Cambio de temperatura: ${tempChange > 0 ? '+' : ''}${tempChange.toFixed(1)}°C vs 2023<br>
+                💧 Cambio de precipitación: ${precipChange > 0 ? '+' : ''}${precipChange.toFixed(1)}% vs 2023<br>
+                ⚡ Eventos extremos: ${(currentEffects.extremeFreq * 100 - 100).toFixed(0)}% más frecuentes
+            `;
+
+            showAlert({
+                type: currentYear >= 2024 ? 'warning' : 'info',
+                icon: '📊',
+                title: `Análisis Climático ${currentYear} vs 2023`,
+                message: changeMessage,
+                action: 'Datos basados en proyecciones climáticas NASA'
+            });
+        }
+
+        function hideYearComparison() {
+            // Clear comparison alerts
+            alertSystem.forEach(alert => {
+                if (alert.data.title.includes('Análisis Climático')) {
+                    dismissAlert(alert.id);
+                }
+            });
+        }
+
+        function showClimateChangeInfo(effects) {
+            let impactLevel = 'info';
+            let impactMessage = '';
+            
+            if (effects.tempOffset > 1.2) {
+                impactLevel = 'warning';
+                impactMessage = 'Impacto climático significativo detectado. ';
+            } else if (effects.tempOffset < 0.8) {
+                impactLevel = 'info';
+                impactMessage = 'Condiciones climáticas más estables en este período. ';
+            }
+            
+            impactMessage += `Temperatura ${effects.tempOffset > 1 ? 'más alta' : 'más baja'} que el promedio histórico.`;
+            
+            showAlert({
+                type: impactLevel,
+                icon: '🌍',
+                title: `Contexto Climático ${currentYear}`,
+                message: impactMessage,
+                action: 'Adaptar estrategias agrícolas según condiciones'
+            });
+        }
+
+        // NEW: Alert System Functions
+        function startAlertMonitoring() {
+            // Check for alerts every 30 seconds
+            alertCheckInterval = setInterval(checkForAlerts, 30000);
+            
+            // Initial alert check
+            setTimeout(checkForAlerts, 5000); // After 5 seconds
+            
+            console.log('🚨 Alert monitoring system started');
+        }
+
+        function checkForAlerts() {
+            const alerts = [];
+            
+            // Check temperature extremes
+            const currentTemp = getEstimatedTemp(currentDate);
+            if (currentTemp > 35) {
+                alerts.push({
+                    type: 'critical',
+                    icon: '🔥',
+                    title: 'ALERTA CRÍTICA: Calor Extremo',
+                    message: `Temperatura de ${currentTemp}°C detectada. Riesgo alto de estrés térmico en cultivos. Se recomienda riego de emergencia.`,
+                    action: 'Activar protocolo de riego de emergencia'
+                });
+            } else if (currentTemp < 5) {
+                alerts.push({
+                    type: 'critical',
+                    icon: '❄️',
+                    title: 'ALERTA CRÍTICA: Helada',
+                    message: `Temperatura de ${currentTemp}°C. Riesgo de heladas. Proteger cultivos sensibles inmediatamente.`,
+                    action: 'Implementar protección antiheladas'
+                });
+            }
+
+            // Check for flowering season with extreme weather
+            const activeFloweringEvents = phenologyData.filter(event => 
+                currentDate >= event.startDay && currentDate <= event.endDay
+            );
+
+            if (activeFloweringEvents.length > 0 && (currentTemp > 32 || currentTemp < 12)) {
+                alerts.push({
+                    type: 'warning',
+                    icon: '🌸',
+                    title: 'ALERTA: Floración en Riesgo',
+                    message: `${activeFloweringEvents.length} eventos de floración activos con temperatura subóptima (${currentTemp}°C). Monitorear desarrollo.`,
+                    action: 'Revisar calendarios de riego y protección'
+                });
+            }
+
+            // Check for low NDVI in agricultural areas
+            if (currentDate > 90 && currentDate < 300) { // Spring/Summer
+                const lowNDVICount = Math.floor(Math.random() * 3); // Simulate detection
+                if (lowNDVICount > 0) {
+                    alerts.push({
+                        type: 'warning',
+                        icon: '🌱',
+                        title: 'ALERTA: Vegetación Baja Detectada',
+                        message: `${lowNDVICount} áreas con NDVI < 0.3 en temporada de crecimiento. Posible estrés hídrico o plagas.`,
+                        action: 'Investigar causas y aplicar tratamientos'
+                    });
+                }
+            }
+
+            // Optimal conditions alert
+            if (currentTemp >= 18 && currentTemp <= 25 && activeFloweringEvents.length > 0) {
+                alerts.push({
+                    type: 'info',
+                    icon: '✅',
+                    title: 'CONDICIONES ÓPTIMAS',
+                    message: `Temperatura ideal ${currentTemp}°C con ${activeFloweringEvents.length} floraciones activas. Momento perfecto para optimización.`,
+                    action: 'Continuar monitoreo regular'
+                });
+            }
+
+            // Display alerts
+            alerts.forEach(alert => showAlert(alert));
+        }
+
+        function showAlert(alertData) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = Date.now() + Math.random();
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${alertData.type}`;
+            alertDiv.dataset.alertId = alertId;
+            
+            alertDiv.innerHTML = `
+                <button class="alert-close" onclick="dismissAlert('${alertId}')">×</button>
+                <div class="alert-header">
+                    <span class="alert-icon">${alertData.icon}</span>
+                    <span>${alertData.title}</span>
+                </div>
+                <div class="alert-message">
+                    ${alertData.message}
+                    ${alertData.action ? `<br><strong>Acción recomendada:</strong> ${alertData.action}` : ''}
+                </div>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-dismiss after 10 seconds for info alerts, 30 seconds for warnings, never for critical
+            if (alertData.type === 'info') {
+                setTimeout(() => dismissAlert(alertId), 10000);
+            } else if (alertData.type === 'warning') {
+                setTimeout(() => dismissAlert(alertId), 30000);
+            }
+            
+            // Track alert
+            alertSystem.push({ id: alertId, data: alertData, timestamp: Date.now() });
+            
+            console.log(`🚨 Alert shown: ${alertData.title}`);
+        }
+
+        function dismissAlert(alertId) {
+            const alertDiv = document.querySelector(`[data-alert-id="${alertId}"]`);
+            if (alertDiv) {
+                alertDiv.style.animation = 'slideOutAlert 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 300);
+            }
+            
+            // Remove from tracking
+            alertSystem = alertSystem.filter(alert => alert.id !== alertId);
+        }
+
+        // Make dismissAlert globally available
+        window.dismissAlert = dismissAlert;
+
+        // Update region data based on selected crop
+        function updateRegionDataForCrop(regions, crop) {
+            const cropMultipliers = {
+                'arroz': { tempOffset: 2, dateOffset: 10, riskMod: 0 },
+                'maiz': { tempOffset: -3, dateOffset: -15, riskMod: 1 },
+                'trigo': { tempOffset: -8, dateOffset: -25, riskMod: -1 },
+                'girasol': { tempOffset: 0, dateOffset: 5, riskMod: 0 },
+                'olivo': { tempOffset: -5, dateOffset: -20, riskMod: -1 },
+                'almendro': { tempOffset: -10, dateOffset: -35, riskMod: 2 }
+            };
+
+            const multiplier = cropMultipliers[crop] || cropMultipliers['arroz'];
+            
+            const updatedRegions = JSON.parse(JSON.stringify(regions)); // Deep copy
+            
+            updatedRegions.features.forEach(feature => {
+                // Update temperature
+                feature.properties.temperature += multiplier.tempOffset;
+                
+                // Update bloom date
+                const baseDate = new Date('2025-03-15');
+                baseDate.setDate(baseDate.getDate() + multiplier.dateOffset);
+                feature.properties.bloomDate = `${baseDate.getDate().toString().padStart(2, '0')}.${(baseDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                
+                // Update risk level
+                const risks = ['low', 'moderate', 'high', 'critical'];
+                const currentRiskIndex = risks.indexOf(feature.properties.riskLevel);
+                const newRiskIndex = Math.max(0, Math.min(3, currentRiskIndex + multiplier.riskMod));
+                feature.properties.riskLevel = risks[newRiskIndex];
+                
+                // Update NDVI based on crop suitability
+                feature.properties.ndvi = Math.max(0.2, Math.min(0.9, feature.properties.ndvi + (multiplier.riskMod * 0.1)));
+            });
+
+            return updatedRegions;
+        }
+
+        // Get bloom color based on risk level and date
+        function getBloomColor(riskLevel, bloomDate) {
+            // Parse date for color calculation
+            const [day, month] = bloomDate.split('.').map(Number);
+            const dateValue = month * 100 + day; // e.g., 315 for 15.03
+            
+            // Color based on timing (earlier = lighter, later = darker)
+            if (dateValue < 220) return '#FFE5F1';      // Very early - light pink
+            else if (dateValue < 315) return '#FFB3D9';  // Early - medium pink
+            else if (dateValue < 415) return '#FF80CC';  // Normal - dark pink  
+            else return '#FF4DC6';                       // Late - deep pink
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
