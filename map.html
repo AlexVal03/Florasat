@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map - Florasat</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1f1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(26, 31, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(173, 184, 88, 0.3);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ADB858;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .logo-svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        .btn-back {
+            padding: 0.6rem 1.5rem;
+            background: transparent;
+            color: white;
+            border: 2px solid #ADB858;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .btn-back:hover {
+            background: rgba(173, 184, 88, 0.3);
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            padding-top: 70px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(26, 31, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(173, 184, 88, 0.3);
+            overflow-y: auto;
+            padding: 2rem;
+            z-index: 500;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #c5d770;
+        }
+
+        .filter-section {
+            margin-bottom: 2rem;
+        }
+
+        .filter-section h3 {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-label {
+            display: block;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        select option {
+            background: #1a1f1a;
+        }
+
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #ADB858 0%, #c5d770 100%);
+            border: none;
+            cursor: pointer;
+        }
+
+        .range-value {
+            display: block;
+            text-align: center;
+            margin-top: 0.5rem;
+            color: #c5d770;
+            font-weight: 600;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: pointer;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #ADB858;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            color: #cbd5e1;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #0a0e0a;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #0a0e0a;
+        }
+
+        .leaflet-container {
+            background: #0a0e0a;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 600;
+            background: rgba(26, 31, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            border-radius: 15px;
+            border: 1px solid rgba(173, 184, 88, 0.3);
+        }
+
+        .legend h4 {
+            margin-bottom: 0.8rem;
+            color: #c5d770;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 10, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(173, 184, 88, 0.2);
+            border-top-color: #ADB858;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats-badge {
+            background: rgba(173, 184, 88, 0.15);
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            border: 1px solid rgba(173, 184, 88, 0.3);
+        }
+
+        .stats-badge p {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .stats-badge strong {
+            color: #c5d770;
+        }
+
+        @media (max-width: 768px) {
+            .timeline {
+                min-width: 90%;
+                left: 5%;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <header class="header">
+        <div class="logo">
+            <img class = "logo-svg" src="img/Logo.png" alt="Florasat Logo">
+                <!-- Subtle background circle -->
+                <circle cx="50" cy="50" r="45" fill="rgba(173, 184, 88, 0.1)" stroke="#ADB858" stroke-width="2"/>
+                
+                <!-- Flower petals -->
+                <path d="M50 20 C60 25 65 35 60 45 C55 55 45 55 40 45 C35 35 40 25 50 20 Z" fill="#ADB858" opacity="0.8"/>
+                <path d="M70 40 C75 50 70 60 60 65 C50 70 40 65 35 55 C30 45 35 35 45 30 C55 25 65 30 70 40 Z" fill="#c5d770" opacity="0.7"/>
+                <path d="M65 65 C55 70 45 70 35 65 C25 60 20 50 25 40 C30 30 40 25 50 25 C60 25 70 30 75 40 C80 50 75 60 65 65 Z" fill="#8fad3f" opacity="0.6"/>
+                
+                <!-- Flower center -->
+                <circle cx="50" cy="50" r="12" fill="#fbbf24"/>
+                
+                <!-- Center details -->
+                <circle cx="45" cy="45" r="2" fill="#1a1f1a"/>
+                <circle cx="55" cy="45" r="2" fill="#1a1f1a"/>
+                <circle cx="50" cy="55" r="2" fill="#1a1f1a"/>
+                
+                <!-- Leaves -->
+                <path d="M30 70 Q40 65 45 75 Q35 80 30 70 Z" fill="#8fad3f" opacity="0.7"/>
+                <path d="M70 70 Q60 65 55 75 Q65 80 70 70 Z" fill="#8fad3f" opacity="0.7"/>
+            </svg>
+            Florasat
+        </div>
+        <a href="index.html" class="btn-back">← Back to Home</a>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Filters and Layers</h2>
+
+            <div class="filter-section">
+                <h3>Bloom Type</h3>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="wildflowers" checked onchange="updateHeatmap()">
+                        <label for="wildflowers">Wildflowers</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="crops" checked onchange="updateHeatmap()">
+                        <label for="crops">Agricultural Crops</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="trees" checked onchange="updateHeatmap()">
+                        <label for="trees">Trees</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3>Region</h3>
+                <div class="filter-group">
+                    <label class="filter-label">Select Region</label>
+                    <select id="regionSelect" onchange="filterRegion()">
+                        <option value="all">Worldwide</option>
+                        <option value="europe">Europe</option>
+                        <option value="asia">Asia</option>
+                        <option value="northamerica">North America</option>
+                        <option value="southamerica">South America</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3>Bloom Intensity</h3>
+                <div class="filter-group">
+                    <label class="filter-label">Minimum Intensity</label>
+                    <input type="range" id="intensitySlider" min="0" max="100" value="0" oninput="updateIntensity(this.value)">
+                    <span class="range-value" id="intensityValue">0%</span>
+                </div>
+            </div>
+
+            <div class="stats-badge">
+                <p><span>Active regions:</span> <strong id="activeRegions">12</strong></p>
+                <p><span>Total area:</span> <strong>8,450 km²</strong></p>
+                <p><span>Last update:</span> <strong>Today</strong></p>
+            </div>
+        </aside>
+
+        <div class="map-container">
+            <div id="map"></div>
+
+            <div class="legend">
+                <h4>Legend - Intensity</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ef4444;"></div>
+                    <span>Very High (90-100%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f97316;"></div>
+                    <span>High (70-90%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fbbf24;"></div>
+                    <span>Medium (50-70%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #c5d770;"></div>
+                    <span>Low (30-50%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ADB858;"></div>
+                    <span>Very Low (0-30%)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    
+    <script>
+        let map;
+        let heatLayer;
+        let currentIntensity = 0;
+
+        // Expanded data with more points for better heatmap effect
+        
+        // Cherry blossoms in Japan (Yoshino Valley, Tokyo, Kyoto)
+        const cherryJapan = [];
+        for (let i = 0; i < 20; i++) {
+            cherryJapan.push([34.37 + (Math.random() - 0.5) * 0.1, 135.86 + (Math.random() - 0.5) * 0.1, 0.85 + Math.random() * 0.15]);
+            cherryJapan.push([35.68 + (Math.random() - 0.5) * 0.08, 139.65 + (Math.random() - 0.5) * 0.08, 0.80 + Math.random() * 0.15]);
+        }
+
+        // Jerte Valley, Spain
+        const cherrySpain = [];
+        for (let i = 0; i < 15; i++) {
+            cherrySpain.push([40.17 + (Math.random() - 0.5) * 0.08, -5.77 + (Math.random() - 0.5) * 0.08, 0.85 + Math.random() * 0.12]);
+        }
+
+        // Washington DC
+        const cherryUSA = [];
+        for (let i = 0; i < 12; i++) {
+            cherryUSA.push([38.88 + (Math.random() - 0.5) * 0.05, -77.04 + (Math.random() - 0.5) * 0.05, 0.82 + Math.random() * 0.12]);
+        }
+
+        // Tulips Netherlands
+        const tulipsNetherlands = [];
+        for (let i = 0; i < 25; i++) {
+            tulipsNetherlands.push([52.27 + (Math.random() - 0.5) * 0.12, 4.54 + (Math.random() - 0.5) * 0.12, 0.88 + Math.random() * 0.12]);
+        }
+
+        // Lavender Provence
+        const lavenderFrance = [];
+        for (let i = 0; i < 20; i++) {
+            lavenderFrance.push([43.90 + (Math.random() - 0.5) * 0.15, 5.30 + (Math.random() - 0.5) * 0.15, 0.80 + Math.random() * 0.15]);
+        }
+
+        // California Superbloom
+        const wildflowersCalifornia = [];
+        for (let i = 0; i < 30; i++) {
+            wildflowersCalifornia.push([35.71 + (Math.random() - 0.5) * 0.2, -119.85 + (Math.random() - 0.5) * 0.2, 0.90 + Math.random() * 0.10]);
+        }
+
+        // Atacama Chile
+        const atacamaChile = [];
+        for (let i = 0; i < 18; i++) {
+            atacamaChile.push([-24.50 + (Math.random() - 0.5) * 0.15, -69.25 + (Math.random() - 0.5) * 0.15, 0.80 + Math.random() * 0.15]);
+        }
+
+        // Sunflowers Kansas
+        const sunflowersKansas = [];
+        for (let i = 0; i < 20; i++) {
+            sunflowersKansas.push([39.10 + (Math.random() - 0.5) * 0.12, -94.58 + (Math.random() - 0.5) * 0.12, 0.75 + Math.random() * 0.15]);
+        }
+
+        // Rapeseed Germany
+        const rapeseedGermany = [];
+        for (let i = 0; i < 18; i++) {
+            rapeseedGermany.push([52.52 + (Math.random() - 0.5) * 0.15, 13.40 + (Math.random() - 0.5) * 0.15, 0.72 + Math.random() * 0.15]);
+        }
+
+        let allBloomData = {
+            trees: [...cherryJapan, ...cherrySpain, ...cherryUSA],
+            crops: [...tulipsNetherlands, ...lavenderFrance, ...sunflowersKansas, ...rapeseedGermany],
+            wildflowers: [...wildflowersCalifornia, ...atacamaChile]
+        };
+
+        function initMap() {
+            map = L.map('map', {
+                center: [30, 0],
+                zoom: 3,
+                minZoom: 2,
+                maxZoom: 18
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 19,
+                className: 'dark-tiles'
+            }).addTo(map);
+
+            updateHeatmap();
+
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }, 1200);
+        }
+
+        function updateHeatmap() {
+            if (heatLayer) {
+                map.removeLayer(heatLayer);
+            }
+
+            const wildflowers = document.getElementById('wildflowers').checked;
+            const crops = document.getElementById('crops').checked;
+            const trees = document.getElementById('trees').checked;
+
+            let heatData = [];
+
+            if (wildflowers) heatData = heatData.concat(allBloomData.wildflowers);
+            if (crops) heatData = heatData.concat(allBloomData.crops);
+            if (trees) heatData = heatData.concat(allBloomData.trees);
+
+            heatData = heatData.filter(point => point[2] * 100 >= currentIntensity);
+
+            if (heatData.length > 0) {
+                heatLayer = L.heatLayer(heatData, {
+                    radius: 40,
+                    blur: 30,
+                    maxZoom: 8,
+                    max: 1.0,
+                    gradient: {
+                        0.0: '#ADB858',
+                        0.3: '#c5d770',
+                        0.5: '#fbbf24',
+                        0.7: '#f97316',
+                        0.9: '#ef4444'
+                    }
+                }).addTo(map);
+            }
+
+            updateStats();
+        }
+
+        function updateStats() {
+            const wildflowers = document.getElementById('wildflowers').checked;
+            const crops = document.getElementById('crops').checked;
+            const trees = document.getElementById('trees').checked;
+
+            let count = 0;
+            if (wildflowers) count += 2;
+            if (crops) count += 4;
+            if (trees) count += 3;
+
+            document.getElementById('activeRegions').textContent = count;
+        }
+
+        function filterRegion() {
+            const region = document.getElementById('regionSelect').value;
+            
+            if (region === 'europe') {
+                map.setView([50, 10], 5);
+            } else if (region === 'asia') {
+                map.setView([35, 135], 5);
+            } else if (region === 'northamerica') {
+                map.setView([37, -95], 4);
+            } else if (region === 'southamerica') {
+                map.setView([-24, -69], 5);
+            } else {
+                map.setView([30, 0], 3);
+            }
+        }
+
+        function updateIntensity(value) {
+            currentIntensity = parseInt(value);
+            document.getElementById('intensityValue').textContent = value + '%';
+            updateHeatmap();
+        }
+
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>

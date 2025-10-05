@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Resources - Florasat</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e3a2e;
+            color: #ffffff;
+        }
+
+        /* Header */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(30, 58, 46, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.2rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(96, 171, 154, 0.3);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ADB858;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            text-decoration: none;
+        }
+
+        .logo img {
+            width: 45px;
+            height: 45px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: #60ab9a;
+        }
+
+        /* Main Container */
+        .container {
+            padding-top: 90px;
+            padding-bottom: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #60ab9a 0%, #0acdff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .page-header p {
+            color: #a0aec0;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: #60ab9a;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title::before {
+            content: "";
+            width: 4px;
+            height: 40px;
+            background: linear-gradient(180deg, #60ab9a 0%, #0acdff 100%);
+            border-radius: 2px;
+        }
+
+        /* Resource Cards */
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .resource-card {
+            background: rgba(30, 58, 46, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(96, 171, 154, 0.3);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-5px);
+            border-color: #60ab9a;
+            box-shadow: 0 10px 30px rgba(96, 171, 154, 0.3);
+        }
+
+        .resource-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .resource-card h3 {
+            color: #60ab9a;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .resource-card p {
+            color: #cbd5e0;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .resource-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #0acdff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .resource-link:hover {
+            color: #60ab9a;
+        }
+
+        /* Video Section */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .video-card {
+            background: rgba(30, 58, 46, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(96, 171, 154, 0.3);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            border-color: #60ab9a;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(96, 171, 154, 0.2) 0%, rgba(10, 205, 255, 0.2) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .video-info {
+            padding: 1.5rem;
+        }
+
+        .video-info h4 {
+            color: #60ab9a;
+            margin-bottom: 0.5rem;
+        }
+
+        .video-info p {
+            color: #cbd5e0;
+            font-size: 0.9rem;
+        }
+
+        /* FAQ Section */
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: rgba(30, 58, 46, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(96, 171, 154, 0.3);
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .faq-item:hover {
+            border-color: #60ab9a;
+        }
+
+        .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #60ab9a;
+            font-size: 1.1rem;
+        }
+
+        .faq-answer {
+            color: #cbd5e0;
+            line-height: 1.6;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .faq-item.active .faq-answer {
+            display: block;
+        }
+
+        .faq-icon {
+            transition: transform 0.3s;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Glossary */
+        .glossary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .glossary-item {
+            background: rgba(30, 58, 46, 0.4);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 1px solid rgba(96, 171, 154, 0.2);
+        }
+
+        .glossary-term {
+            color: #60ab9a;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .glossary-definition {
+            color: #cbd5e0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .resources-grid, .video-grid, .glossary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <a href="index.html" class="logo">
+            <img src="img/Logo.png" alt="Florasat Logo">
+            Florasat
+        </a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="map.html">Map</a></li>
+            <li><a href="data.html">Data</a></li>
+            <li><a href="resources.html">Resources</a></li>
+            <li><a href="about.html">About</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Educational Resources</h1>
+            <p>Learn about satellite observation, plant phenology, and the impact of bloom monitoring on our planet</p>
+        </div>
+
+        <!-- NASA Resources Section -->
+        <div class="section">
+            <h2 class="section-title">🛰️ NASA Resources</h2>
+            <div class="resources-grid">
+                <div class="resource-card">
+                    <div class="resource-icon">📡</div>
+                    <h3>NASA Earthdata</h3>
+                    <p>Access Earth observation data from missions like Landsat, MODIS, and VIIRS to study vegetation changes.</p>
+                    <a href="https://earthdata.nasa.gov/" class="resource-link" target="_blank">
+                        Explore Earthdata →
+                    </a>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-icon">🌍</div>
+                    <h3>NASA Worldview</h3>
+                    <p>Visualize near real-time satellite imagery of the entire planet with different data layers.</p>
+                    <a href="https://worldview.earthdata.nasa.gov/" class="resource-link" target="_blank">
+                        Open Worldview →
+                    </a>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-icon">🌺</div>
+                    <h3>GLOBE Observer</h3>
+                    <p>Application for citizen scientists to report local bloom observations and validate satellite data.</p>
+                    <a href="https://observer.globe.gov/" class="resource-link" target="_blank">
+                        Download App →
+                    </a>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-icon">📊</div>
+                    <h3>MODIS Web</h3>
+                    <p>Detailed information about the MODIS instrument and its applications in vegetation monitoring.</p>
+                    <a href="https://modis.gsfc.nasa.gov/" class="resource-link" target="_blank">
+                        View MODIS →
+                    </a>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-icon">🛰️</div>
+                    <h3>Landsat Science</h3>
+                    <p>Discover how Landsat missions provide continuous Earth data since 1972.</p>
+                    <a href="https://landsat.gsfc.nasa.gov/" class="resource-link" target="_blank">
+                        Explore Landsat →
+                    </a>
+                </div>
+
+                <div class="resource-card">
+                    <div class="resource-icon">📚</div>
+                    <h3>Earth Observatory</h3>
+                    <p>Visual stories about climate and environment based on scientific observations.</p>
+                    <a href="https://earthobservatory.nasa.gov/" class="resource-link" target="_blank">
+                        Read Stories →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Videos Section -->
+        <div class="section">
+            <h2 class="section-title">🎥 Educational Videos</h2>
+            <div class="video-grid">
+                <div class="video-card">
+                    <div class="video-thumbnail">▶️</div>
+                    <div class="video-info">
+                        <h4>What is NDVI?</h4>
+                        <p>Introduction to the Normalized Difference Vegetation Index and its use in agriculture.</p>
+                    </div>
+                </div>
+
+                <div class="video-card">
+                    <div class="video-thumbnail">▶️</div>
+                    <div class="video-info">
+                        <h4>Superblooms from Space</h4>
+                        <p>How NASA satellites capture massive bloom events.</p>
+                    </div>
+                </div>
+
+                <div class="video-card">
+                    <div class="video-thumbnail">▶️</div>
+                    <div class="video-info">
+                        <h4>Phenology and Climate Change</h4>
+                        <p>The relationship between bloom cycles and global warming.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Glossary Section -->
+        <div class="section">
+            <h2 class="section-title">📖 Technical Glossary</h2>
+            <div class="glossary-grid">
+                <div class="glossary-item">
+                    <div class="glossary-term">NDVI</div>
+                    <div class="glossary-definition">Normalized Difference Vegetation Index. Measures the amount and health of vegetation.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">Phenology</div>
+                    <div class="glossary-definition">Study of periodic biological cycles of plants and their relationship with climate.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">Superbloom</div>
+                    <div class="glossary-definition">Massive and synchronized bloom event visible from space.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">MODIS</div>
+                    <div class="glossary-definition">Moderate Resolution Imaging Spectroradiometer, key NASA instrument.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">Landsat</div>
+                    <div class="glossary-definition">Longest-running Earth observation satellite program, operational since 1972.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">EVI</div>
+                    <div class="glossary-definition">Enhanced Vegetation Index. Optimized for areas with high biomass.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">Spectral Resolution</div>
+                    <div class="glossary-definition">Sensor's ability to distinguish different light wavelengths.</div>
+                </div>
+
+                <div class="glossary-item">
+                    <div class="glossary-term">Pollinator</div>
+                    <div class="glossary-definition">Organism that transfers pollen between flowers, essential for plant reproduction.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="section">
+            <h2 class="section-title">❓ Frequently Asked Questions</h2>
+            <div class="faq-container">
+                <div class="faq-item" onclick="toggleFAQ(this)">
+                    <div class="faq-question">
+                        How do satellites detect plant blooming?
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Satellites use sensors that capture light in different wavelengths. Flowers reflect light differently than leaves, allowing detection of spectral changes. Indices like NDVI measure vegetation health and density, and sudden changes can indicate bloom events.
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFAQ(this)">
+                    <div class="faq-question">
+                        What is a superbloom and why is it important?
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        A superbloom is a massive flowering event that occurs when exceptional weather conditions (such as abundant rains after droughts) cause millions of wildflowers to bloom simultaneously. They are important because they indicate significant environmental changes and are visible from space.
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFAQ(this)">
+                    <div class="faq-question">
+                        How can I contribute to Florasat?
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        You can use the GLOBE Observer app to report local bloom observations. This data helps validate satellite detections and improves the accuracy of our predictive models.
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFAQ(this)">
+                    <div class="faq-question">
+                        What satellites does Florasat use?
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        We use data from multiple NASA missions: Landsat 8/9 (30m resolution), MODIS Terra/Aqua (250-500m resolution), VIIRS Suomi NPP, and occasionally ESA's Sentinel-2. Each satellite provides complementary information.
+                    </div>
+                </div>
+
+                <div class="faq-item" onclick="toggleFAQ(this)">
+                    <div class="faq-question">
+                        How does climate change affect bloom patterns?
+                        <span class="faq-icon">▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        Climate change is altering bloom cycles: some species bloom earlier, others later, and some change their duration. This can desynchronize plant-pollinator relationships and affect entire ecosystems. Florasat helps monitor these changes.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFAQ(element) {
+            element.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
