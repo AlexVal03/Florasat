@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import json
+from .smart_data_simulator import smart_simulator
 
 class AEMETClient:
     """
@@ -219,81 +220,12 @@ class AEMETClient:
             return "LOW - Normal monitoring"
     
     def _simulate_weather_data(self) -> Dict:
-        """Fallback simulated weather data for Valencia"""
-        now = datetime.now()
-        
-        # Simulate realistic Valencia weather
-        month = now.month
-        if month in [6, 7, 8]:  # Summer
-            temp = 28 + (month - 6) * 2
-            humidity = 55
-            precip = 0.2
-        elif month in [12, 1, 2]:  # Winter
-            temp = 12 + (2 - abs(month - 1)) * 2
-            humidity = 75
-            precip = 1.5
-        else:  # Spring/Fall
-            temp = 20
-            humidity = 65
-            precip = 0.5
-        
-        return {
-            "station": self.valencia_station,
-            "datetime": now.isoformat(),
-            "temperature": temp,
-            "humidity": humidity,
-            "precipitation": precip,
-            "wind_speed": 2.5,
-            "wind_direction": 270,
-            "pressure": 1013.2,
-            "soil_temperature": temp - 2,
-            "evapotranspiration_estimate": self._calculate_et0(temp, humidity, 2.5)
-        }
+        """🧠 SIMULACIÓN INTELIGENTE - Usa SmartDataSimulator"""
+        return smart_simulator.get_current_weather_simulation(self.valencia_station)
     
     def _simulate_forecast_data(self, days: int) -> List[Dict]:
-        """Fallback simulated forecast data"""
-        forecast = []
-        base_date = datetime.now()
-        
-        for i in range(days):
-            date = base_date + timedelta(days=i)
-            month = date.month
-            
-            # Seasonal temperature simulation
-            if month in [6, 7, 8]:
-                temp_avg = 28 + i * 0.5
-                temp_max = temp_avg + 5
-                temp_min = temp_avg - 5
-                humidity = 55 - i * 2
-                precip_prob = 10 + i * 5
-            elif month in [12, 1, 2]:
-                temp_avg = 15 - i * 0.3
-                temp_max = temp_avg + 4
-                temp_min = temp_avg - 4
-                humidity = 75 + i
-                precip_prob = 40 + i * 5
-            else:
-                temp_avg = 20 + i * 0.2
-                temp_max = temp_avg + 6
-                temp_min = temp_avg - 6
-                humidity = 65
-                precip_prob = 25 + i * 3
-            
-            wind_speed = 2.0 + i * 0.2
-            
-            forecast.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "temp_max": round(temp_max, 1),
-                "temp_min": round(temp_min, 1),
-                "temp_avg": round(temp_avg, 1),
-                "precipitation_probability": min(100, precip_prob),
-                "humidity": max(30, min(100, humidity)),
-                "wind_speed": wind_speed,
-                "irrigation_need": self._calculate_irrigation_need(temp_avg, humidity, wind_speed, precip_prob),
-                "et0_estimate": self._calculate_et0(temp_avg, humidity, wind_speed)
-            })
-        
-        return forecast
+        """🧠 SIMULACIÓN INTELIGENTE - Usa SmartDataSimulator para forecast"""
+        return smart_simulator.generate_forecast(days=days)
 
     async def get_irrigation_intelligence(self, crop_type: str = "arroz") -> Dict:
         """
