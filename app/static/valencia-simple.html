@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLORSTAT Valencia - Simple Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            text-align: center;
+            color: #2c3e50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+        
+        .crop-selector {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            top: 200px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 280px;
+            font-family: Arial, sans-serif;
+        }
+
+        .legend h4 {
+            margin: 0 0 12px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 6px;
+            border-radius: 6px;
+            transition: background 0.3s ease;
+        }
+
+        .legend-item:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 12px;
+            border: 1px solid #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .legend-text {
+            flex: 1;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        .legend-date {
+            font-weight: bold;
+            color: #34495e;
+        }
+
+        .legend-desc {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        /* Timeline Controls */
+        .timeline-container {
+            position: absolute;
+            bottom: 160px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .timeline-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .timeline-date {
+            font-size: 14px;
+            color: #3498db;
+            background: rgba(52, 152, 219, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .timeline-slider {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: #ecf0f1;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .timeline-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .timeline-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .timeline-button:hover {
+            background: #2980b9;
+        }
+
+        .timeline-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .timeline-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 8px;
+        }
+
+        .forecast-indicator {
+            background: linear-gradient(90deg, #e74c3c, #f39c12);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .risk-info {
+            position: absolute;
+            top: 300px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 200px;
+            font-size: 12px;
+        }
+
+        .risk-info h5 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .risk-level {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            padding: 3px;
+            border-radius: 4px;
+        }
+
+        .risk-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+
+        .zoom-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .zoom-btn:hover {
+            background: #2980b9;
+        }
+
+        .valencia-popup .leaflet-popup-content,
+        .region-popup .leaflet-popup-content {
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .bloom-date-marker,
+        .region-label {
+            animation: pulse 2s infinite;
+        }
+
+        .region-label:hover {
+            animation: none;
+            transform: scale(1.1);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Leaflet popup improvements */
+        .leaflet-popup-content-wrapper {
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .leaflet-popup-tip {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .legend {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                min-width: auto;
+                max-width: none;
+            }
+            
+            .crop-selector {
+                top: 80px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+            
+            .zoom-controls {
+                top: 160px;
+                right: 10px;
+            }
+            
+            .risk-info {
+                top: 220px;
+                right: 10px;
+                max-width: 150px;
+            }
+            
+            .legend-item {
+                margin: 6px 0;
+                padding: 4px;
+            }
+            
+            .legend-color {
+                width: 25px;
+                height: 18px;
+            }
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 2000;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌸 FLORSTAT Valencia - Pronóstico de Floración Simple</h1>
+        <p>Mapa simplificado para pruebas - Región de Valencia</p>
+    </div>
+
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div>Cargando mapa de Valencia...</div>
+    </div>
+
+    <div class="crop-selector">
+        <h3>🌾 Cultivo:</h3>
+        <select id="cropSelect">
+            <option value="arroz">🌾 Arroz</option>
+            <option value="maiz">🌽 Maíz</option>
+            <option value="trigo">🌾 Trigo</option>
+            <option value="naranja">🍊 Naranja</option>
+        </select>
+    </div>
+
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="resetZoom()">🔍 Reset Zoom</button>
+    </div>
+
+
+
+    <div class="legend">
+        <h4>⚠️ Riesgo de Floración</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFE5F1;"></div>
+            <div class="legend-text">
+                <div class="legend-date">Riesgo Muy Bajo</div>
+                <div class="legend-desc">Condiciones óptimas - Floración temprana</div>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFB3D9;"></div>
+            <div class="legend-text">
+                <div class="legend-date">Riesgo Bajo</div>
+                <div class="legend-desc">Buenas condiciones - Timing favorable</div>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF80CC;"></div>
+            <div class="legend-text">
+                <div class="legend-date">Riesgo Moderado</div>
+                <div class="legend-desc">Condiciones normales - Monitoreo requerido</div>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF4DC6;"></div>
+            <div class="legend-text">
+                <div class="legend-date">Riesgo Alto</div>
+                <div class="legend-desc">Condiciones adversas - Floración tardía</div>
+            </div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF1493;"></div>
+            <div class="legend-text">
+                <div class="legend-date">Riesgo Muy Alto</div>
+                <div class="legend-desc">Condiciones críticas - Pérdida de rendimiento</div>
+            </div>
+        </div>
+        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #bdc3c7; font-size: 11px; color: #7f8c8d; text-align: center;">
+            🌸 De tenue (bajo riesgo) a intenso (alto riesgo)<br>
+            📊 El riesgo cambia según el cultivo seleccionado
+        </div>
+    </div>
+
+    <!-- Timeline temporal interactivo -->
+    <div class="timeline-container">
+        <div class="timeline-header">
+            <div class="timeline-title">📅 Timeline Temporal - Riesgo de Floración</div>
+            <div class="timeline-date" id="currentDate">5 Oct 2025</div>
+        </div>
+        <div class="timeline-controls">
+            <button class="timeline-button" id="playBtn">▶️ Play</button>
+            <button class="timeline-button" id="prevBtn">⏮️</button>
+            <input type="range" class="timeline-slider" id="timelineSlider" 
+                   min="0" max="394" value="365" step="1">
+            <button class="timeline-button" id="nextBtn">⏭️</button>
+            <button class="timeline-button" id="todayBtn">📍 Hoy</button>
+        </div>
+        <div class="timeline-info">
+            <span>📊 <strong>1 año atrás</strong> (histórico)</span>
+            <span id="timelineMode">📈 Datos actuales</span>
+            <span><strong>1 mes adelante</strong> 🔮 (pronóstico)</span>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let choroplethLayer;
+        let currentCrop = 'arroz';
+
+        // Timeline variables
+        let timelineData = {};
+        let currentDate = new Date();
+        let startDate = new Date(currentDate.getTime() - 365 * 24 * 60 * 60 * 1000); // 1 año atrás
+        let endDate = new Date(currentDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 1 mes adelante
+        let isPlaying = false;
+        let playInterval;
+        let timelineCache = new Map();
+
+        // Valencia Community regions with real administrative boundaries
+        const valenciaRegions = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Valencia",
+                        "type": "city",
+                        "level": 1,
+                        "population": 791413
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-0.4500, 39.5100], [-0.4200, 39.5200], [-0.3800, 39.5100],
+                            [-0.3500, 39.4900], [-0.3300, 39.4700], [-0.3200, 39.4500],
+                            [-0.3300, 39.4300], [-0.3500, 39.4200], [-0.3800, 39.4100],
+                            [-0.4200, 39.4000], [-0.4500, 39.4100], [-0.4700, 39.4300],
+                            [-0.4800, 39.4500], [-0.4700, 39.4700], [-0.4500, 39.5100]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Castellón",
+                        "type": "city",
+                        "level": 1,
+                        "population": 171669
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-0.0800, 39.9800], [-0.0500, 39.9900], [-0.0200, 39.9800],
+                            [0.0100, 39.9600], [0.0300, 39.9400], [0.0400, 39.9200],
+                            [0.0300, 39.9000], [0.0100, 39.8900], [-0.0200, 39.8800],
+                            [-0.0500, 39.8700], [-0.0800, 39.8800], [-0.1000, 39.9000],
+                            [-0.1100, 39.9200], [-0.1000, 39.9400], [-0.0800, 39.9800]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Alicante",
+                        "type": "city",
+                        "level": 1,
+                        "population": 337482
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-0.5400, 38.3800], [-0.5100, 38.3900], [-0.4700, 38.3800],
+                            [-0.4400, 38.3600], [-0.4200, 38.3400], [-0.4100, 38.3200],
+                            [-0.4200, 38.3000], [-0.4400, 38.2900], [-0.4700, 38.2800],
+                            [-0.5100, 38.2700], [-0.5400, 38.2800], [-0.5600, 38.3000],
+                            [-0.5700, 38.3200], [-0.5600, 38.3400], [-0.5400, 38.3800]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Sagunto",
+                        "type": "town",
+                        "level": 2,
+                        "population": 66259
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-0.2900, 39.7100], [-0.2700, 39.7150], [-0.2500, 39.7100],
+                            [-0.2400, 39.7000], [-0.2350, 39.6900], [-0.2400, 39.6800],
+                            [-0.2500, 39.6750], [-0.2700, 39.6700], [-0.2900, 39.6750],
+                            [-0.3000, 39.6800], [-0.3050, 39.6900], [-0.3000, 39.7000],
+                            [-0.2900, 39.7100]
+                        ]]
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Xàtiva",
+                        "type": "town",
+                        "level": 2,
+                        "population": 29144
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [-0.5300, 38.9900], [-0.5100, 38.9950], [-0.4900, 38.9900],
+                            [-0.4800, 38.9800], [-0.4750, 38.9700], [-0.4800, 38.9600],
+                            [-0.4900, 38.9550], [-0.5100, 38.9500], [-0.5300, 38.9550],
+                            [-0.5400, 38.9600], [-0.5450, 38.9700], [-0.5400, 38.9800],
+                            [-0.5300, 38.9900]
+                        ]]
+                    }
+                }
+            ]
+        };
+
+        // Zoom levels configuration
+        const zoomLevels = {
+            overview: { center: [39.4699, -0.3763], zoom: 8, showLevel: [1] },
+            regional: { center: [39.4699, -0.3763], zoom: 10, showLevel: [1, 2] },
+            detailed: { center: [39.4699, -0.3763], zoom: 12, showLevel: [1, 2, 3] }
+        };
+
+        let currentZoomLevel = 'overview';
+
+        // Simple crop data
+        const cropData = {
+            'arroz': { name: 'Arroz', tempOffset: 2, dateOffset: 10, icon: '🌾' },
+            'maiz': { name: 'Maíz', tempOffset: -3, dateOffset: -15, icon: '🌽' },
+            'trigo': { name: 'Trigo', tempOffset: -8, dateOffset: -25, icon: '🌾' },
+            'naranja': { name: 'Naranja', tempOffset: -5, dateOffset: -20, icon: '🍊' }
+        };
+
+        // Initialize map
+        function initMap() {
+            console.log('🗺️ Initializing Valencia map...');
+            
+            map = L.map('map').setView([39.4699, -0.3763], 9);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors | FLORSTAT Valencia Test'
+            }).addTo(map);
+
+            console.log('✅ Map tiles loaded');
+        }
+
+        // Get bloom color based on flowering risk (tenue to intense)
+        function getBloomColor(bloomDate, temperature = 22, riskLevel = 'moderate', riskScore = null) {
+            // If we have a direct risk score from the API, use it
+            if (riskScore !== null && riskScore !== undefined) {
+                return getRiskColorFromScore(riskScore);
+            }
+            
+            // Otherwise, calculate from traditional parameters
+            const [day, month] = bloomDate.split('.').map(Number);
+            const dateValue = month * 100 + day; // e.g., 315 for 15.03
+            
+            // Calculate flowering risk based on multiple factors
+            let calculatedRiskScore = 0;
+            
+            // Date-based risk (earlier = better, later = riskier)
+            if (dateValue < 220) calculatedRiskScore += 0;      // Very early: no risk
+            else if (dateValue < 301) calculatedRiskScore += 1; // Early: low risk
+            else if (dateValue < 315) calculatedRiskScore += 2; // Normal: moderate risk
+            else if (dateValue < 415) calculatedRiskScore += 3; // Late: high risk
+            else calculatedRiskScore += 4;                      // Very late: very high risk
+            
+            // Temperature-based risk
+            if (temperature > 30) calculatedRiskScore += 1;     // Heat stress
+            else if (temperature < 10) calculatedRiskScore += 1; // Cold stress
+            
+            // Risk level adjustment
+            if (riskLevel === 'critical') calculatedRiskScore += 2;
+            else if (riskLevel === 'high') calculatedRiskScore += 1;
+            else if (riskLevel === 'low') calculatedRiskScore -= 1;
+            
+            // Ensure score is within bounds
+            calculatedRiskScore = Math.max(0, Math.min(4, calculatedRiskScore));
+            
+            return getRiskColorFromScore(calculatedRiskScore / 4); // Normalize to 0-1
+        }
+
+        // Convert risk score (0-1) to color
+        function getRiskColorFromScore(score) {
+            // Sakura gradient from tenue (low risk) to intense (high risk)
+            const riskColors = [
+                '#FFE5F1', // 0.0-0.2: Muy bajo riesgo - rosa muy tenue
+                '#FFB3D9', // 0.2-0.4: Bajo riesgo - rosa claro
+                '#FF80CC', // 0.4-0.6: Moderado riesgo - rosa medio
+                '#FF4DC6', // 0.6-0.8: Alto riesgo - rosa intenso
+                '#FF1493'  // 0.8-1.0: Muy alto riesgo - rosa muy intenso
+            ];
+            
+            const index = Math.floor(score * 4.99); // Convert 0-1 to 0-4 index
+            return riskColors[Math.max(0, Math.min(4, index))];
+        }
+
+        // Get risk color for risk indicators
+        function getRiskColor(riskLevel) {
+            const colors = {
+                'low': '#27ae60',      // Green
+                'moderate': '#f1c40f', // Yellow
+                'high': '#e67e22',     // Orange
+                'critical': '#e74c3c'  // Red
+            };
+            return colors[riskLevel] || '#95a5a6';
+        }
+
+        // Update choropleth layer with progressive zoom levels
+        async function updateChoropleth(crop) {
+            console.log(`🌸 Updating choropleth for ${crop} at zoom level ${currentZoomLevel}`);
+            
+            // Remove existing layer
+            if (choroplethLayer) {
+                map.removeLayer(choroplethLayer);
+            }
+
+            // Get current date from timeline
+            const slider = document.getElementById('timelineSlider');
+            const currentTimelineDate = getDateFromSliderValue(parseInt(slider.value));
+            const dateStr = currentTimelineDate.toISOString().split('T')[0];
+
+            try {
+                // Fetch real data from API
+                const response = await fetch(`/api/flowering-risk/risk-map-data?date=${dateStr}&crop=${crop}`);
+                const apiData = await response.json();
+                
+                if (apiData.status === 'success') {
+                    // Update regions with API data
+                    updateRegionsWithApiData(apiData.regions);
+                } else {
+                    throw new Error('API returned error status');
+                }
+            } catch (error) {
+                console.warn('⚠️ API failed, using simulated data:', error);
+                // Fallback to simulated data
+                updateRegionsWithSimulatedData(currentTimelineDate);
+            }
+
+            // Filter regions based on current zoom level
+            const currentLevel = zoomLevels[currentZoomLevel];
+            const visibleRegions = valenciaRegions.features.filter(feature => 
+                currentLevel.showLevel.includes(feature.properties.level)
+            );
+
+            // Create choropleth layer with current data
+            const data = {
+                type: "FeatureCollection",
+                features: visibleRegions
+            };
+
+            choroplethLayer = L.geoJSON(data, {
+                style: function(feature) {
+                    const riskScore = feature.properties.riskScore || 0.5;
+                    const confidence = feature.properties.confidence || 0.8;
+                    
+                    const baseStyle = {
+                        fillColor: getRiskColorFromScore(riskScore),
+                        weight: 2,
+                        opacity: 1,
+                        color: confidence < 0.7 ? '#e67e22' : '#2c3e50', // Orange border for low confidence
+                        fillOpacity: confidence < 0.7 ? 0.6 : 0.7 // Lower opacity for forecasts
+                    };
+                    
+                    // Different styles based on region type
+                    if (feature.properties.type === 'city') {
+                        baseStyle.weight = 3;
+                    }
+                    
+                    return baseStyle;
+                },
+                onEachFeature: function(feature, layer) {
+                    // Enhanced hover effects
+                    layer.on({
+                        mouseover: function(e) {
+                            const layer = e.target;
+                            layer.setStyle({
+                                weight: 5,
+                                opacity: 1,
+                                fillOpacity: 0.9,
+                                color: '#e74c3c'
+                            });
+                            
+                            // Bring to front
+                            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                                layer.bringToFront();
+                            }
+                            
+                            console.log(`🎯 Hovering over ${feature.properties.name}`);
+                        },
+                        mouseout: function(e) {
+                            choroplethLayer.resetStyle(e.target);
+                            console.log(`🔄 Mouse left ${feature.properties.name}`);
+                        },
+                        click: function(e) {
+                            console.log(`🔍 Clicked on ${feature.properties.name} - Zooming in...`);
+                            zoomToRegion(feature, layer);
+                        }
+                    });
+
+                    // Add region labels based on zoom level
+                    if (currentZoomLevel !== 'overview' || feature.properties.type === 'city') {
+                        const center = layer.getBounds().getCenter();
+                        const cropInfo = cropData[crop];
+                        
+                        // Size label based on region importance
+                        const labelSize = feature.properties.type === 'city' ? [120, 45] : [100, 35];
+                        const fontSize = feature.properties.type === 'city' ? '16px' : '14px';
+                        
+                        const regionLabel = L.marker(center, {
+                            icon: L.divIcon({
+                                html: `
+                                    <div style="
+                                        background: rgba(255,255,255,0.95);
+                                        border: 2px solid #2c3e50;
+                                        border-radius: 12px;
+                                        padding: 6px 12px;
+                                        font-weight: bold;
+                                        font-size: ${fontSize};
+                                        text-align: center;
+                                        color: #2c3e50;
+                                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                                        cursor: pointer;
+                                        transition: all 0.3s ease;
+                                        line-height: 1.2;
+                                    ">
+                                        <div>${cropInfo.icon} ${feature.properties.bloomDate}</div>
+                                        <div style="font-size: 11px; margin-top: 2px;">${feature.properties.name}</div>
+                                    </div>
+                                `,
+                                className: 'region-label',
+                                iconSize: labelSize,
+                                iconAnchor: [labelSize[0]/2, labelSize[1]/2]
+                            })
+                        }).addTo(map);
+
+                        // Click event for label too
+                        regionLabel.on('click', function() {
+                            zoomToRegion(feature, layer);
+                        });
+                    }
+
+                    // Enhanced popup with regional information
+                    const popupContent = createRegionPopup(feature, cropData[crop]);
+                    layer.bindPopup(popupContent, {
+                        maxWidth: 350,
+                        className: 'region-popup'
+                    });
+                }
+            }).addTo(map);
+
+            console.log(`✅ Choropleth updated - showing ${data.features.length} regions`);
+        }
+
+        // Zoom to specific region and show more detail
+        function zoomToRegion(feature, layer) {
+            const regionName = feature.properties.name;
+            console.log(`🎯 Focusing on ${regionName}...`);
+            
+            // Determine next zoom level
+            if (currentZoomLevel === 'overview') {
+                currentZoomLevel = 'regional';
+            } else if (currentZoomLevel === 'regional') {
+                currentZoomLevel = 'detailed';
+            }
+            
+            // Zoom to region bounds
+            map.fitBounds(layer.getBounds(), {
+                padding: [30, 30],
+                maxZoom: zoomLevels[currentZoomLevel].zoom
+            });
+            
+            // Update regions display after zoom
+            setTimeout(() => {
+                updateChoropleth(currentCrop);
+            }, 500);
+        }
+
+        // Create detailed popup for regions
+        function createRegionPopup(feature, cropInfo) {
+            const props = feature.properties;
+            return `
+                <div style="text-align: center; min-width: 280px;">
+                    <h3 style="margin: 0 0 15px 0; color: #2c3e50;">
+                        ${cropInfo.icon} ${cropInfo.name}
+                    </h3>
+                    <div style="font-size: 1.3em; font-weight: bold; margin: 10px 0; color: #34495e;">
+                        �️ ${props.name}
+                    </div>
+                    <div style="font-size: 0.9em; color: #7f8c8d; margin: 5px 0;">
+                        ${props.type === 'city' ? '🏙️ Ciudad Principal' : '🏘️ Municipio'} • 👥 ${props.population.toLocaleString()} hab.
+                    </div>
+                    <div style="
+                        background: ${getBloomColor(props.bloomDate)}; 
+                        color: #2c3e50; 
+                        padding: 12px; 
+                        border-radius: 10px; 
+                        margin: 15px 0;
+                        font-weight: bold;
+                        font-size: 1.2em;
+                        border: 2px solid #2c3e50;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    ">
+                        🌸 Floración Prevista: ${props.bloomDate}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 15px 0;">
+                        <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                            <strong>🌡️</strong><br>
+                            <span style="font-size: 1.1em; color: #e74c3c;">${props.temperature}°C</span>
+                        </div>
+                        <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                            <strong>🌱</strong><br>
+                            <span style="font-size: 1.1em; color: #27ae60;">${props.ndvi}</span>
+                        </div>
+                        <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px;">
+                            <strong>⚠️</strong><br>
+                            <span style="font-size: 0.9em; color: #f39c12;">${props.riskLevel}</span>
+                        </div>
+                    </div>
+                    <div style="margin: 15px 0; padding: 10px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                        <strong>⚠️ Evaluación de Riesgo:</strong><br>
+                        <span style="font-size: 0.9em;">
+                            ${getFloweringStageText(props.bloomDate, props.temperature, props.riskLevel)}
+                        </span>
+                    </div>
+                    <div style="margin: 15px 0; padding: 10px; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <strong>💡 Tip:</strong> Haz clic para más detalle regional
+                    </div>
+                    <div style="font-size: 0.9em; margin-top: 15px; color: #7f8c8d;">
+                        <strong>📍 Nivel:</strong> ${currentZoomLevel === 'overview' ? 'Vista General' : currentZoomLevel === 'regional' ? 'Vista Regional' : 'Vista Detallada'}<br>
+                        <strong>📅 Temporada:</strong> Primavera 2025
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get flowering risk explanation
+        function getFloweringStageText(bloomDate, temperature = 22, riskLevel = 'moderate') {
+            const [day, month] = bloomDate.split('.').map(Number);
+            const dateValue = month * 100 + day;
+            
+            // Calculate same risk score as getBloomColor
+            let riskScore = 0;
+            if (dateValue < 220) riskScore += 0;
+            else if (dateValue < 301) riskScore += 1;
+            else if (dateValue < 315) riskScore += 2;
+            else if (dateValue < 415) riskScore += 3;
+            else riskScore += 4;
+            
+            if (temperature > 30) riskScore += 1;
+            else if (temperature < 10) riskScore += 1;
+            
+            if (riskLevel === 'critical') riskScore += 2;
+            else if (riskLevel === 'high') riskScore += 1;
+            else if (riskLevel === 'low') riskScore -= 1;
+            
+            riskScore = Math.max(0, Math.min(4, riskScore));
+            
+            const riskTexts = [
+                'Riesgo muy bajo - Condiciones óptimas para floración',
+                'Riesgo bajo - Buenas condiciones, timing favorable', 
+                'Riesgo moderado - Condiciones normales, monitoreo requerido',
+                'Riesgo alto - Condiciones adversas, posible estrés',
+                'Riesgo muy alto - Condiciones críticas, pérdida esperada'
+            ];
+            
+            return riskTexts[riskScore];
+        }
+
+        // Reset zoom to show full Valencia region
+        function resetZoom() {
+            console.log('🔍 Resetting to overview level...');
+            currentZoomLevel = 'overview';
+            const overviewLevel = zoomLevels[currentZoomLevel];
+            map.setView(overviewLevel.center, overviewLevel.zoom);
+            
+            // Refresh regions display
+            setTimeout(() => {
+                updateChoropleth(currentCrop);
+            }, 300);
+        }
+
+        // Initialize everything
+        function init() {
+            console.log('🚀 Starting FLORSTAT Valencia Simple...');
+            
+            try {
+                initMap();
+                updateChoropleth(currentCrop);
+                
+                // Setup crop selector
+                document.getElementById('cropSelect').addEventListener('change', (e) => {
+                    currentCrop = e.target.value;
+                    updateChoropleth(currentCrop);
+                });
+
+                // Setup timeline controls
+                setupTimeline();
+                
+                console.log('✅ FLORSTAT Valencia initialized successfully!');
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+            } finally {
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // ===== TIMELINE FUNCTIONS =====
+        
+        function setupTimeline() {
+            console.log('📅 Setting up timeline controls...');
+            
+            const slider = document.getElementById('timelineSlider');
+            const playBtn = document.getElementById('playBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const todayBtn = document.getElementById('todayBtn');
+            
+            // Event listeners
+            slider.addEventListener('input', (e) => {
+                const sliderValue = parseInt(e.target.value);
+                const targetDate = getDateFromSliderValue(sliderValue);
+                setCurrentDate(targetDate);
+                updateMapForDate(targetDate);
+            });
+            
+            playBtn.addEventListener('click', togglePlay);
+            prevBtn.addEventListener('click', () => moveTimeline(-1));
+            nextBtn.addEventListener('click', () => moveTimeline(1));
+            todayBtn.addEventListener('click', goToToday);
+            
+            // Initialize to today
+            goToToday();
+        }
+        
+        function getDateFromSliderValue(sliderValue) {
+            // Slider: 0 = 1 año atrás, 365 = hoy, 395 = 1 mes adelante
+            const daysFromStart = sliderValue;
+            const targetDate = new Date(startDate.getTime() + daysFromStart * 24 * 60 * 60 * 1000);
+            return targetDate;
+        }
+        
+        function getSliderValueFromDate(date) {
+            const diffTime = date.getTime() - startDate.getTime();
+            const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+            return Math.max(0, Math.min(394, diffDays));
+        }
+        
+        function setCurrentDate(date) {
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            const dateStr = date.toLocaleDateString('es-ES', options);
+            document.getElementById('currentDate').textContent = dateStr;
+            
+            // Update timeline mode indicator
+            const today = new Date();
+            const timelineMode = document.getElementById('timelineMode');
+            
+            if (date > today) {
+                timelineMode.innerHTML = '🔮 <span class="forecast-indicator">PRONÓSTICO</span>';
+            } else if (Math.abs(date - today) < 24 * 60 * 60 * 1000) {
+                timelineMode.innerHTML = '📍 <strong>HOY</strong>';
+            } else {
+                timelineMode.innerHTML = '📊 Datos históricos';
+            }
+        }
+        
+        async function updateMapForDate(date) {
+            console.log(`🗓️ Updating map for date: ${date.toISOString().split('T')[0]}`);
+            
+            try {
+                // Check cache first
+                const dateKey = date.toISOString().split('T')[0];
+                if (timelineCache.has(dateKey)) {
+                    const cachedData = timelineCache.get(dateKey);
+                    updateRegionsWithData(cachedData);
+                    return;
+                }
+                
+                // Fetch risk data for this date
+                const isForecast = date > new Date();
+                const riskData = await fetchRiskDataForDate(dateKey, isForecast);
+                
+                // Cache the data
+                timelineCache.set(dateKey, riskData);
+                
+                // Update regions
+                updateRegionsWithApiData(riskData);
+                
+            } catch (error) {
+                console.error('❌ Error updating map for date:', error);
+                // Fallback to simulated data
+                updateRegionsWithSimulatedData(date);
+            }
+        }
+        
+        async function fetchRiskDataForDate(dateStr, isForecast) {
+            // Use our new flowering risk API
+            const response = await fetch(`/api/flowering-risk/risk-map-data?date=${dateStr}&crop=${currentCrop}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.regions;
+        }
+        
+        function updateRegionsWithApiData(riskData) {
+            // Update each region's properties with real API data
+            valenciaRegions.features.forEach(feature => {
+                const regionName = feature.properties.name;
+                if (riskData[regionName]) {
+                    const risk = riskData[regionName];
+                    feature.properties.riskScore = risk.risk_score;
+                    feature.properties.riskLevel = risk.risk_level;
+                    feature.properties.confidence = risk.confidence;
+                    // Add coordinate info for debugging
+                    feature.properties.coordinates = risk.coordinates;
+                } else {
+                    // If no data from API, set default values
+                    feature.properties.riskScore = 0.5;
+                    feature.properties.riskLevel = 'medio';
+                    feature.properties.confidence = 0.5;
+                }
+            });
+        }
+        
+        function updateRegionsWithData(riskData) {
+            // Update each region's properties with new risk data
+            valenciaRegions.features.forEach(feature => {
+                const regionName = feature.properties.name;
+                if (riskData[regionName]) {
+                    const risk = riskData[regionName];
+                    feature.properties.riskScore = risk.risk_score;
+                    feature.properties.riskLevel = risk.risk_level;
+                    feature.properties.confidence = risk.confidence;
+                }
+            });
+            
+            // Refresh the choropleth
+            updateChoropleth(currentCrop);
+        }
+        
+        function updateRegionsWithSimulatedData(date) {
+            // Simulate risk data based on date
+            const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            const seasonalFactor = Math.sin((dayOfYear / 365) * 2 * Math.PI - Math.PI/4) * 0.3 + 0.5;
+            
+            valenciaRegions.features.forEach((feature, index) => {
+                // Add some regional variation
+                const regionVariation = (index * 0.1) % 0.3;
+                const riskScore = Math.max(0, Math.min(1, seasonalFactor + regionVariation + (Math.random() - 0.5) * 0.2));
+                
+                feature.properties.riskScore = riskScore;
+                feature.properties.riskLevel = getRiskLevelFromScore(riskScore);
+                feature.properties.confidence = date > new Date() ? 0.7 : 0.95;
+            });
+            
+            updateChoropleth(currentCrop);
+        }
+        
+        function getRiskLevelFromScore(score) {
+            if (score >= 0.8) return 'muy_alto';
+            if (score >= 0.6) return 'alto';
+            if (score >= 0.4) return 'medio';
+            if (score >= 0.2) return 'bajo';
+            return 'muy_bajo';
+        }
+        
+        function togglePlay() {
+            const playBtn = document.getElementById('playBtn');
+            
+            if (isPlaying) {
+                // Stop playing
+                clearInterval(playInterval);
+                isPlaying = false;
+                playBtn.textContent = '▶️ Play';
+            } else {
+                // Start playing
+                isPlaying = true;
+                playBtn.textContent = '⏸️ Pause';
+                
+                playInterval = setInterval(() => {
+                    const slider = document.getElementById('timelineSlider');
+                    let currentValue = parseInt(slider.value);
+                    
+                    if (currentValue >= parseInt(slider.max)) {
+                        // Reached end, stop playing
+                        togglePlay();
+                        return;
+                    }
+                    
+                    // Move forward one day
+                    currentValue += 1;
+                    slider.value = currentValue;
+                    
+                    const targetDate = getDateFromSliderValue(currentValue);
+                    setCurrentDate(targetDate);
+                    updateMapForDate(targetDate);
+                    
+                }, 100); // Play at 10 days per second
+            }
+        }
+        
+        function moveTimeline(direction) {
+            const slider = document.getElementById('timelineSlider');
+            let currentValue = parseInt(slider.value);
+            const newValue = Math.max(0, Math.min(394, currentValue + direction));
+            
+            slider.value = newValue;
+            const targetDate = getDateFromSliderValue(newValue);
+            setCurrentDate(targetDate);
+            updateMapForDate(targetDate);
+        }
+        
+        function goToToday() {
+            const slider = document.getElementById('timelineSlider');
+            const todayValue = 365; // Today is at position 365 (1 year after start)
+            
+            slider.value = todayValue;
+            setCurrentDate(new Date());
+            updateMapForDate(new Date());
+        }
+        
+        // Initialize everything
+        async function init() {
+            console.log('🚀 Starting FLORSTAT Valencia Simple...');
+            
+            try {
+                initMap();
+                
+                // Setup crop selector
+                document.getElementById('cropSelect').addEventListener('change', (e) => {
+                    currentCrop = e.target.value;
+                    updateChoropleth(currentCrop);
+                });
+
+                // Setup timeline controls
+                setupTimeline();
+                
+                // Load initial data with API
+                await updateChoropleth(currentCrop);
+                
+                console.log('✅ FLORSTAT Valencia initialized successfully!');
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+            } finally {
+                // Hide loading if element exists
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,10 +1,10 @@
-# 🌸 FLORASAT - NASA Space Apps Challenge 2025
+# 🌸 FLORSTAT - NASA Space Apps Challenge 2025
 
 **Global Flowering Risk Prediction using NASA Earth Observation**
 
-*Florasat is an innovative platform that monitors and analyzes blooming events worldwide using NASA satellite data. Our mission is to observe the pulse of life across our planet through advanced satellite imagery and real-time crop flowering risk assessment to protect agriculture, pollinators, and human health from climate change.*
+*Real-time crop flowering risk assessment to protect agriculture, pollinators, and human health from climate change*
 
-![FLORSAT](https://img.shields.io/badge/NASA%20Space%20Apps-2025-blue) ![Status](https://img.shields.io/badge/Status-COMPLETE-brightgreen) ![Challenge](https://img.shields.io/badge/Challenge-FLORSTAT%20Phenology-orange) ![Impact](https://img.shields.io/badge/Impact-Climate%20Adaptation-red)
+![FLORSTAT](https://img.shields.io/badge/NASA%20Space%20Apps-2025-blue) ![Status](https://img.shields.io/badge/Status-COMPLETE-brightgreen) ![Challenge](https://img.shields.io/badge/Challenge-FLORSTAT%20Phenology-orange) ![Impact](https://img.shields.io/badge/Impact-Climate%20Adaptation-red)
 
 ---
 
@@ -179,4 +179,4 @@ curl "http://localhost:8000/api/phenology/analyze?years=2020,2021,2022,2023,2024
 
 ---
 
-**🌸 FLORASAT: Transforming NASA Earth observation into global flowering risk intelligence to protect our planet's future** 🛰️🐝🌾
+**🌸 FLORSTAT: Transforming NASA Earth observation into global flowering risk intelligence to protect our planet's future** 🛰️🐝🌾
