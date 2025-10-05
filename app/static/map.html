@@ -854,7 +854,7 @@
         // Initialize map
         function initMap() {
             // Initialize Leaflet map centered on Valencia
-            map = L.map('map').setView([39.4699, -0.3763], 8);
+            map = L.map('map').setView([39.4699, -0.3763], 10);
 
             // Add OpenStreetMap tiles with high quality
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1203,35 +1203,97 @@
         // Load translations
         async function loadTranslations(language = 'es') {
             try {
+                console.log(`📝 Fetching translations for language: ${language}`);
                 const response = await fetch(`/api/i18n/translations?language=${language}`);
-                translations = await response.json();
-                currentLanguage = language;
-                updateUITexts();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    translations = data.translations;
+                    currentLanguage = language;
+                    console.log('✅ Translations loaded successfully:', Object.keys(translations).length, 'keys');
+                    updateUITexts();
+                } else {
+                    throw new Error(data.message || 'Failed to load translations');
+                }
             } catch (error) {
-                console.error('Error loading translations:', error);
+                console.error('❌ Error loading translations:', error);
+                // Set fallback translations
+                translations = {
+                    temporal_navigation: 'Navegación Temporal',
+                    filters: 'Filtros',
+                    heatmap_layers: 'Capas de Calor',
+                    crop_types: 'Tipos de Cultivo',
+                    yield_level: 'Nivel de Rendimiento',
+                    temperature: 'Temperatura',
+                    ndvi: 'NDVI',
+                    humidity: 'Humedad',
+                    high: 'Alto',
+                    medium: 'Medio',
+                    low: 'Bajo'
+                };
+                currentLanguage = language;
+                console.log('📝 Using fallback translations');
+                updateUITexts();
+                throw error; // Re-throw to handle in init()
             }
         }
 
         // Update UI texts with current language
         function updateUITexts() {
-            // Timeline
-            document.getElementById('timeline-title').textContent = 
-                translations.temporal_navigation || 'Navegación Temporal';
-            
-            // Filters
-            document.getElementById('filters-title').textContent = 
-                translations.filters || 'Filtros';
-            document.getElementById('heatmap-layers-label').textContent = 
-                `🔥 ${translations.heatmap_layers || 'Capas de Calor'}:`;
-            document.getElementById('crop-filter-label').textContent = 
-                `🌾 ${translations.crop_types || 'Tipos de Cultivo'}:`;
-            document.getElementById('yield-filter-label').textContent = 
-                `📈 ${translations.yield_level || 'Nivel de Rendimiento'}:`;
-            
-            // Heatmap buttons
-            document.getElementById('temp-heatmap-label').textContent = translations.temperature || 'Temperatura';
-            document.getElementById('ndvi-heatmap-label').textContent = translations.ndvi || 'NDVI';
-            document.getElementById('humidity-heatmap-label').textContent = translations.humidity || 'Humedad';
+            try {
+                // Timeline
+                const timelineTitle = document.getElementById('timeline-title');
+                if (timelineTitle) {
+                    timelineTitle.textContent = translations.temporal_navigation || 'Navegación Temporal';
+                }
+                
+                // Filters
+                const filtersTitle = document.getElementById('filters-title');
+                if (filtersTitle) {
+                    filtersTitle.textContent = translations.filters || 'Filtros';
+                }
+                
+                const heatmapLabel = document.getElementById('heatmap-layers-label');
+                if (heatmapLabel) {
+                    heatmapLabel.textContent = `🔥 ${translations.heatmap_layers || 'Capas de Calor'}:`;
+                }
+                
+                const cropLabel = document.getElementById('crop-filter-label');
+                if (cropLabel) {
+                    cropLabel.textContent = `🌾 ${translations.crop_types || 'Tipos de Cultivo'}:`;
+                }
+                
+                const yieldLabel = document.getElementById('yield-filter-label');
+                if (yieldLabel) {
+                    yieldLabel.textContent = `📈 ${translations.yield_level || 'Nivel de Rendimiento'}:`;
+                }
+                
+                // Heatmap buttons
+                const tempLabel = document.getElementById('temp-heatmap-label');
+                if (tempLabel) {
+                    tempLabel.textContent = translations.temperature || 'Temperatura';
+                }
+                
+                const ndviLabel = document.getElementById('ndvi-heatmap-label');
+                if (ndviLabel) {
+                    ndviLabel.textContent = translations.ndvi || 'NDVI';
+                }
+                
+                const humidityLabel = document.getElementById('humidity-heatmap-label');
+                if (humidityLabel) {
+                    humidityLabel.textContent = translations.humidity || 'Humedad';
+                }
+                
+                console.log('🎨 UI texts updated for language:', currentLanguage);
+            } catch (error) {
+                console.error('❌ Error updating UI texts:', error);
+            }
+        }
             document.getElementById('yield-heatmap-label').textContent = translations.yield || 'Rendimiento';
             
             // Crop labels
@@ -1388,6 +1450,64 @@
         // Crop and Risk Management Functions
         let currentCrop = 'arroz'; // Default crop
         let riskLayer = null;
+        let choroplethLayer = null;
+        let currentZoomLevel = 1;
+
+        // GeoJSON data for Valencia region only (simplified)
+        const valenciaRegion = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Valencia",
+                        "bloomDate": "15.03",
+                        "riskLevel": "moderate",
+                        "temperature": 22,
+                        "ndvi": 0.65
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-1.2, 40.1], [-1.2, 38.8], [0.8, 38.8], [0.8, 40.1], [-1.2, 40.1]]]
+                    }
+                }
+            ]
+        // GeoJSON data for Valencia region only (simplified)
+        const valenciaRegion = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Valencia",
+                        "bloomDate": "15.03",
+                        "riskLevel": "moderate",
+                        "temperature": 22,
+                        "ndvi": 0.65
+                    },
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [[[-1.2, 40.1], [-1.2, 38.8], [0.8, 38.8], [0.8, 40.1], [-1.2, 40.1]]]
+                    }
+                }
+            ]
+        };
+
+        // Color schemes for different flowering stages
+        const floweringColorSchemes = {
+            'cherry_blossom': {
+                'early': '#FFE5F1',    // Light pink
+                'normal': '#FFB3D9',   // Medium pink  
+                'late': '#FF80CC',     // Dark pink
+                'very_late': '#FF4DC6' // Deep pink
+            },
+            'crop_risk': {
+                'low': '#E8F5E8',      // Light green
+                'moderate': '#FFF2CC', // Light yellow
+                'high': '#FFE5CC',     // Light orange
+                'critical': '#FFCCCC'  // Light red
+            }
+        };
 
         // Handle crop selection change
         function handleCropChange(selectedCrop) {
@@ -1457,14 +1577,137 @@
             return crops[crop] || crops['arroz'];
         }
 
-        // Update risk map visualization
+        // Update risk map visualization with choropleth
         function updateRiskMap(crop) {
-            // Remove existing risk layer
+            // Remove existing layers
             if (riskLayer) {
                 map.removeLayer(riskLayer);
             }
+            if (choroplethLayer) {
+                map.removeLayer(choroplethLayer);
+            }
 
             const cropData = generateRiskData(crop);
+            
+            // Update region data based on selected crop
+            const updatedRegions = updateRegionDataForCrop(valenciaRegion, crop);
+            
+            // Create choropleth layer
+            choroplethLayer = L.geoJSON(updatedRegions, {
+                style: function(feature) {
+                    return {
+                        fillColor: getBloomColor(feature.properties.riskLevel, feature.properties.bloomDate),
+                        weight: 2,
+                        opacity: 0.8,
+                        color: '#2c3e50',
+                        fillOpacity: 0.7
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    // Add date label
+                    const center = layer.getBounds().getCenter();
+                    const dateLabel = L.marker(center, {
+                        icon: L.divIcon({
+                            html: `
+                                <div style="
+                                    background: rgba(255,255,255,0.95);
+                                    border: 2px solid #2c3e50;
+                                    border-radius: 8px;
+                                    padding: 6px 10px;
+                                    font-weight: bold;
+                                    font-size: 14px;
+                                    text-align: center;
+                                    color: #2c3e50;
+                                    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                                    white-space: nowrap;
+                                ">
+                                    ${feature.properties.bloomDate}
+                                </div>
+                            `,
+                            className: 'bloom-date-choropleth',
+                            iconSize: [60, 30],
+                            iconAnchor: [30, 15]
+                        })
+                    });
+
+                    // Add to layer group
+                    if (!riskLayer) {
+                        riskLayer = L.layerGroup();
+                    }
+                    riskLayer.addLayer(dateLabel);
+
+                    // Popup content
+                    const popupContent = `
+                        <div style="text-align: center; min-width: 220px;">
+                            <h3 style="margin: 0 0 15px 0; color: #2c3e50;">
+                                ${cropData.icon} ${cropData.name}
+                            </h3>
+                            <div style="font-size: 1.2em; font-weight: bold; margin: 10px 0;">
+                                🌍 ${feature.properties.name}
+                            </div>
+                            <div style="
+                                background: ${getBloomColor(feature.properties.riskLevel, feature.properties.bloomDate)}; 
+                                color: #2c3e50; 
+                                padding: 12px; 
+                                border-radius: 8px; 
+                                margin: 15px 0;
+                                font-weight: bold;
+                                font-size: 1.1em;
+                                border: 2px solid #2c3e50;
+                            ">
+                                🌸 Bloom Forecast: ${feature.properties.bloomDate}
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+                                <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 5px;">
+                                    <strong>🌡️ Temp</strong><br>
+                                    ${feature.properties.temperature}°C
+                                </div>
+                                <div style="text-align: center; padding: 8px; background: #f8f9fa; border-radius: 5px;">
+                                    <strong>🌱 NDVI</strong><br>
+                                    ${feature.properties.ndvi}
+                                </div>
+                            </div>
+                            <div style="margin: 10px 0; padding: 8px; background: #e9ecef; border-radius: 5px;">
+                                <strong>📊 Risk Level:</strong> 
+                                <span style="font-weight: bold; text-transform: uppercase;">
+                                    ${feature.properties.riskLevel}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.9em; margin-top: 15px; color: #6c757d;">
+                                <strong>Optimal Range:</strong> ${cropData.optimalTemp[0]}°C - ${cropData.optimalTemp[1]}°C
+                            </div>
+                        </div>
+                    `;
+
+                    layer.bindPopup(popupContent);
+                    
+                    // Hover effects
+                    layer.on({
+                        mouseover: function(e) {
+                            e.target.setStyle({
+                                weight: 4,
+                                opacity: 1,
+                                fillOpacity: 0.9
+                            });
+                        },
+                        mouseout: function(e) {
+                            e.target.setStyle({
+                                weight: 2,
+                                opacity: 0.8,
+                                fillOpacity: 0.7
+                            });
+                        }
+                    });
+                }
+            }).addTo(map);
+
+            // Add date labels
+            if (riskLayer) {
+                riskLayer.addTo(map);
+            }
+
+            console.log(`🌸 Choropleth flowering forecast updated for ${crop} - showing ${updatedRegions.features.length} regions`);
+        }
             
             // Create multiple regions with flowering forecast data
             const regions = [
@@ -1656,26 +1899,50 @@
 
         // Initialize everything
         async function init() {
-            console.log('🚀 Initializing FLORSTAT Global Flowering Forecast Map...');
+            console.log('🚀 Initializing FLORSTAT Valencia Flowering Forecast Map...');
             
-            // Initialize map
-            initMap();
-            
-            // Load translations
-            await loadTranslations();
-            
-            // Load phenology data
-            await loadPhenologyData();
-            
-            // Initial map update
-            updateMapMarkers();
-            
-            // Initialize risk map with default crop
-            updateRiskMap(currentCrop);
-            updateCropInfo(currentCrop);
-            
-            // Hide loading
-            hideLoading();
+            try {
+                // Initialize map first (this should always work)
+                initMap();
+                console.log('✅ Map initialized');
+                
+                // Set simple fallback translations (skip API calls for now)
+                translations = {
+                    temporal_navigation: 'Navegación Temporal',
+                    filters: 'Filtros',
+                    temperature: 'Temperatura',
+                    ndvi: 'NDVI',
+                    humidity: 'Humedad'
+                };
+                console.log('✅ Translations set');
+                
+                // Create simple Valencia phenology data
+                phenologyData = [{
+                    id: 'valencia_1',
+                    lat: 39.4699,
+                    lng: -0.3763,
+                    crop: 'arroz',
+                    yieldLevel: 'high',
+                    startDay: 100,
+                    endDay: 150,
+                    peakDay: 125
+                }];
+                console.log('✅ Valencia phenology data created');
+                
+                // Initialize risk map with default crop (Valencia only) 
+                console.log('🌸 Initializing Valencia choropleth map...');
+                updateRiskMap(currentCrop);
+                updateCropInfo(currentCrop);
+                
+                console.log('✅ FLORSTAT Valencia map fully initialized!');
+                
+            } catch (error) {
+                console.error('❌ Critical error during initialization:', error);
+            } finally {
+                // Always hide loading screen
+                console.log('🎯 Hiding loading screen...');
+                hideLoading();
+            }
             
             // Setup event listeners
             document.getElementById('dateSlider').addEventListener('input', (e) => {
@@ -2011,6 +2278,56 @@
 
         // Make dismissAlert globally available
         window.dismissAlert = dismissAlert;
+
+        // Update region data based on selected crop
+        function updateRegionDataForCrop(regions, crop) {
+            const cropMultipliers = {
+                'arroz': { tempOffset: 2, dateOffset: 10, riskMod: 0 },
+                'maiz': { tempOffset: -3, dateOffset: -15, riskMod: 1 },
+                'trigo': { tempOffset: -8, dateOffset: -25, riskMod: -1 },
+                'girasol': { tempOffset: 0, dateOffset: 5, riskMod: 0 },
+                'olivo': { tempOffset: -5, dateOffset: -20, riskMod: -1 },
+                'almendro': { tempOffset: -10, dateOffset: -35, riskMod: 2 }
+            };
+
+            const multiplier = cropMultipliers[crop] || cropMultipliers['arroz'];
+            
+            const updatedRegions = JSON.parse(JSON.stringify(regions)); // Deep copy
+            
+            updatedRegions.features.forEach(feature => {
+                // Update temperature
+                feature.properties.temperature += multiplier.tempOffset;
+                
+                // Update bloom date
+                const baseDate = new Date('2025-03-15');
+                baseDate.setDate(baseDate.getDate() + multiplier.dateOffset);
+                feature.properties.bloomDate = `${baseDate.getDate().toString().padStart(2, '0')}.${(baseDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                
+                // Update risk level
+                const risks = ['low', 'moderate', 'high', 'critical'];
+                const currentRiskIndex = risks.indexOf(feature.properties.riskLevel);
+                const newRiskIndex = Math.max(0, Math.min(3, currentRiskIndex + multiplier.riskMod));
+                feature.properties.riskLevel = risks[newRiskIndex];
+                
+                // Update NDVI based on crop suitability
+                feature.properties.ndvi = Math.max(0.2, Math.min(0.9, feature.properties.ndvi + (multiplier.riskMod * 0.1)));
+            });
+
+            return updatedRegions;
+        }
+
+        // Get bloom color based on risk level and date
+        function getBloomColor(riskLevel, bloomDate) {
+            // Parse date for color calculation
+            const [day, month] = bloomDate.split('.').map(Number);
+            const dateValue = month * 100 + day; // e.g., 315 for 15.03
+            
+            // Color based on timing (earlier = lighter, later = darker)
+            if (dateValue < 220) return '#FFE5F1';      // Very early - light pink
+            else if (dateValue < 315) return '#FFB3D9';  // Early - medium pink
+            else if (dateValue < 415) return '#FF80CC';  // Normal - dark pink  
+            else return '#FF4DC6';                       // Late - deep pink
+        }
 
         // Start the application
         document.addEventListener('DOMContentLoaded', init);

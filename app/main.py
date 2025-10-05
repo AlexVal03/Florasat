@@ -39,6 +39,22 @@ async def interactive_map():
             html = f.read()
     return HTMLResponse(content=html)
 
+@app.get('/map.html', response_class=HTMLResponse)
+async def interactive_map_html():
+    """🌍 Mapa interactivo - ruta alternativa con .html"""
+    return await interactive_map()
+
+@app.get('/valencia-simple', response_class=HTMLResponse)
+async def valencia_simple_map():
+    """🌸 Mapa simplificado de Valencia para pruebas"""
+    try:
+        with open('app/static/valencia-simple.html', 'r', encoding='utf-8') as f:
+            html = f.read()
+    except UnicodeDecodeError:
+        with open('app/static/valencia-simple.html', 'r', encoding='utf-8', errors='replace') as f:
+            html = f.read()
+    return HTMLResponse(content=html)
+
 @app.get('/health')
 async def health():
     return {'status': 'ok'}
