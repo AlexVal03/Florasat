@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌍 FLORASAT - Mapa Interactivo de Fenología</title>
+    <title>� FLORSTAT - Global Flowering Risk Map</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -533,9 +533,9 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">
-                <span>🌍</span>
-                <span>FLORASAT</span>
-                <span style="font-size: 0.7em; opacity: 0.8;">Mapa Fenológico Interactivo</span>
+                <span>�</span>
+                <span>FLORSTAT</span>
+                <span style="font-size: 0.7em; opacity: 0.8;">Global Flowering Forecast</span>
             </div>
             <div class="controls">
                 <select id="languageSelect" class="btn">
@@ -753,7 +753,7 @@
 
             // Add OpenStreetMap tiles with high quality
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors | FLORASAT NASA Space Apps 2025',
+                attribution: '© OpenStreetMap contributors | FLORSTAT NASA Space Apps 2025',
                 maxZoom: 18
             }).addTo(map);
 
@@ -1282,7 +1282,7 @@
 
         // Initialize everything
         async function init() {
-            console.log('🚀 Initializing FLORASAT Interactive Map...');
+            console.log('🚀 Initializing FLORSTAT Global Flowering Forecast Map...');
             
             // Initialize map
             initMap();
@@ -1348,7 +1348,7 @@
             
             document.getElementById('compareYears').addEventListener('click', toggleComparisonMode);
             
-            console.log('✅ FLORASAT Interactive Map initialized successfully!');
+            console.log('✅ FLORSTAT Global Flowering Forecast Map initialized successfully!');
             
             // Start intelligent alert monitoring
             startAlertMonitoring();
