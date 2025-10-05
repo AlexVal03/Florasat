@@ -435,6 +435,17 @@
             background: #e74c3c; /* Rojo */
         }
 
+        /* Custom bloom date markers */
+        .bloom-date-marker {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header {
@@ -670,24 +681,24 @@
         <!-- Risk Legend -->
         <div class="risk-legend-container">
             <div class="risk-legend-header">
-                <div>🎨 <span id="risk-legend-title">Mapa de Riesgo de Floración</span></div>
+                <div>� <span id="risk-legend-title">Pronóstico de Floración</span></div>
             </div>
             <div class="risk-legend">
                 <div class="risk-item risk-low">
                     <div class="risk-color"></div>
-                    <span id="risk-low-label">🟢 Bajo (0-25%)</span>
+                    <span id="risk-low-label">🟢 Temprano (Feb-Mar)</span>
                 </div>
                 <div class="risk-item risk-moderate">
                     <div class="risk-color"></div>
-                    <span id="risk-moderate-label">🟡 Moderado (25-50%)</span>
+                    <span id="risk-moderate-label">🟡 Normal (Mar-Abr)</span>
                 </div>
                 <div class="risk-item risk-high">
                     <div class="risk-color"></div>
-                    <span id="risk-high-label">🟠 Alto (50-75%)</span>
+                    <span id="risk-high-label">🟠 Tardío (Abr-May)</span>
                 </div>
                 <div class="risk-item risk-critical">
                     <div class="risk-color"></div>
-                    <span id="risk-critical-label">🔴 Crítico (75-100%)</span>
+                    <span id="risk-critical-label">🔴 Muy Tardío (May+)</span>
                 </div>
             </div>
         </div>
@@ -1397,37 +1408,49 @@
                     name: 'Arroz/Rice',
                     optimalTemp: [20, 30],
                     riskFactors: ['water_stress', 'temperature', 'humidity'],
-                    currentRisk: 'moderate' // 25-50%
+                    currentRisk: 'moderate', // 25-50%
+                    season: 'Spring-Summer',
+                    icon: '🌾'
                 },
                 'maiz': {
                     name: 'Maíz/Corn', 
                     optimalTemp: [15, 25],
                     riskFactors: ['drought', 'temperature', 'wind'],
-                    currentRisk: 'low' // 0-25%
+                    currentRisk: 'low', // 0-25%
+                    season: 'Spring',
+                    icon: '🌽'
                 },
                 'trigo': {
                     name: 'Trigo/Wheat',
                     optimalTemp: [10, 20],
                     riskFactors: ['frost', 'rainfall', 'temperature'],
-                    currentRisk: 'high' // 50-75%
+                    currentRisk: 'high', // 50-75%
+                    season: 'Early Spring',
+                    icon: '🌾'
                 },
                 'girasol': {
                     name: 'Girasol/Sunflower',
                     optimalTemp: [18, 25],
                     riskFactors: ['wind', 'temperature', 'soil_moisture'],
-                    currentRisk: 'moderate' // 25-50%
+                    currentRisk: 'moderate', // 25-50%
+                    season: 'Late Spring',
+                    icon: '🌻'
                 },
                 'olivo': {
                     name: 'Olivo/Olive',
                     optimalTemp: [15, 22],
                     riskFactors: ['frost', 'humidity', 'temperature'],
-                    currentRisk: 'low' // 0-25%
+                    currentRisk: 'low', // 0-25%
+                    season: 'Spring',
+                    icon: '🫒'
                 },
                 'almendro': {
                     name: 'Almendro/Almond',
                     optimalTemp: [12, 18],
                     riskFactors: ['frost', 'wind', 'pollination'],
-                    currentRisk: 'critical' // 75-100%
+                    currentRisk: 'critical', // 75-100%
+                    season: 'Early Spring',
+                    icon: '🌸'
                 }
             };
 
@@ -1442,6 +1465,65 @@
             }
 
             const cropData = generateRiskData(crop);
+            
+            // Create multiple regions with flowering forecast data
+            const regions = [
+                // España - Valencia
+                {
+                    name: 'Valencia, Spain',
+                    coords: [39.4699, -0.3763],
+                    radius: 25000,
+                    date: '15.03',
+                    risk: 'moderate',
+                    temp: 22
+                },
+                // Francia - Provence
+                {
+                    name: 'Provence, France', 
+                    coords: [43.9493, 5.9281],
+                    radius: 30000,
+                    date: '28.02',
+                    risk: 'low',
+                    temp: 18
+                },
+                // Italia - Toscana
+                {
+                    name: 'Tuscany, Italy',
+                    coords: [43.7711, 11.2486],
+                    radius: 35000,
+                    date: '05.03',
+                    risk: 'high',
+                    temp: 25
+                },
+                // Grecia - Tesalónica
+                {
+                    name: 'Thessaloniki, Greece',
+                    coords: [40.6401, 22.9444],
+                    radius: 20000,
+                    date: '12.04',
+                    risk: 'critical',
+                    temp: 28
+                },
+                // Portugal - Lisboa
+                {
+                    name: 'Lisbon, Portugal',
+                    coords: [38.7223, -9.1393],
+                    radius: 25000,
+                    date: '20.02',
+                    risk: 'low',
+                    temp: 16
+                },
+                // Marruecos - Rabat
+                {
+                    name: 'Rabat, Morocco',
+                    coords: [34.0209, -6.8416],
+                    radius: 30000,
+                    date: '10.02',
+                    risk: 'moderate',
+                    temp: 20
+                }
+            ];
+
             const riskColors = {
                 'low': '#27ae60',      // Verde
                 'moderate': '#f1c40f', // Amarillo  
@@ -1449,40 +1531,90 @@
                 'critical': '#e74c3c'  // Rojo
             };
 
-            // Create risk visualization for Valencia region
-            const valencia = [39.4699, -0.3763];
-            const riskLevel = cropData.currentRisk;
-            const color = riskColors[riskLevel];
+            // Create risk layers for each region
+            riskLayer = L.layerGroup();
 
-            // Create risk circle overlay
-            riskLayer = L.circle(valencia, {
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.4,
-                radius: 15000, // 15km radius
-                weight: 3
-            }).addTo(map);
+            regions.forEach(region => {
+                const color = riskColors[region.risk];
+                
+                // Create colored region circle
+                const circle = L.circle(region.coords, {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.5,
+                    radius: region.radius,
+                    weight: 3
+                });
 
-            // Add popup with risk information
-            riskLayer.bindPopup(`
-                <div style="text-align: center;">
-                    <h3>🌾 ${cropData.name}</h3>
-                    <div style="margin: 10px 0;">
-                        <span style="color: ${color}; font-size: 2em;">●</span>
-                        <br>
-                        <strong>Riesgo de Floración: ${riskLevel.toUpperCase()}</strong>
-                    </div>
-                    <div style="font-size: 0.9em;">
-                        <strong>Factores de Riesgo:</strong><br>
-                        ${cropData.riskFactors.map(factor => `• ${factor.replace('_', ' ')}`).join('<br>')}
-                    </div>
-                    <div style="margin-top: 10px; font-size: 0.9em;">
-                        <strong>Temp. Óptima:</strong> ${cropData.optimalTemp[0]}°C - ${cropData.optimalTemp[1]}°C
-                    </div>
-                </div>
-            `);
+                // Create custom marker for date display
+                const dateIcon = L.divIcon({
+                    html: `
+                        <div style="
+                            background: rgba(255,255,255,0.9);
+                            border: 2px solid ${color};
+                            border-radius: 8px;
+                            padding: 4px 8px;
+                            font-weight: bold;
+                            font-size: 12px;
+                            text-align: center;
+                            color: #2c3e50;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">
+                            ${region.date}
+                        </div>
+                    `,
+                    className: 'bloom-date-marker',
+                    iconSize: [50, 25],
+                    iconAnchor: [25, 12]
+                });
 
-            console.log(`🎨 Risk map updated for ${crop}: ${riskLevel} risk`);
+                const dateMarker = L.marker(region.coords, { icon: dateIcon });
+
+                // Add popup with detailed information
+                const popupContent = `
+                    <div style="text-align: center; min-width: 200px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">
+                            🌾 ${cropData.name}
+                        </h3>
+                        <div style="font-size: 1.1em; font-weight: bold; margin: 8px 0;">
+                            📍 ${region.name}
+                        </div>
+                        <div style="
+                            background: ${color}; 
+                            color: white; 
+                            padding: 8px; 
+                            border-radius: 5px; 
+                            margin: 10px 0;
+                            font-weight: bold;
+                        ">
+                            🌸 Predicted Bloom: ${region.date}
+                        </div>
+                        <div style="margin: 8px 0;">
+                            <strong>🌡️ Temperature:</strong> ${region.temp}°C
+                        </div>
+                        <div style="margin: 8px 0;">
+                            <strong>⚠️ Risk Level:</strong> 
+                            <span style="color: ${color}; font-weight: bold;">
+                                ${region.risk.toUpperCase()}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.9em; margin-top: 10px; color: #7f8c8d;">
+                            <strong>Optimal Range:</strong> ${cropData.optimalTemp[0]}°C - ${cropData.optimalTemp[1]}°C
+                        </div>
+                    </div>
+                `;
+
+                circle.bindPopup(popupContent);
+                dateMarker.bindPopup(popupContent);
+
+                riskLayer.addLayer(circle);
+                riskLayer.addLayer(dateMarker);
+            });
+
+            // Add layer group to map
+            riskLayer.addTo(map);
+
+            console.log(`� Flowering forecast map updated for ${crop} - showing ${regions.length} regions`);
         }
 
         // Update crop information in info panel
